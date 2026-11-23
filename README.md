@@ -162,8 +162,9 @@ cmake -S cpp -B cpp/build && cmake --build cpp/build --config Release && ctest -
 ## Contributing and support
 
 Questions, bug reports and pull requests are welcome through
-[GitHub issues](https://github.com/byu-magicc/coast/issues); see
-[`CONTRIBUTING.md`](https://github.com/byu-magicc/coast/blob/main/CONTRIBUTING.md) for
+[GitHub issues](https://github.com/byu-magicc/Minimum-Snap-Trajectories/issues).
+
+See [`CONTRIBUTING.md`](https://github.com/byu-magicc/coast/blob/main/CONTRIBUTING.md) for
 development setup, conventions and where to ask for help. Participation is governed by the
 [Code of Conduct](https://github.com/byu-magicc/coast/blob/main/CODE_OF_CONDUCT.md).
 
