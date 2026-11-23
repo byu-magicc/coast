@@ -187,3 +187,18 @@ def test_demo_voxel_flag(tmp_path, capsys):
     main(["--env", "simple", "--mode", "sfc", "--voxel", "0.3", "--save", str(tmp_path)])
     out = capsys.readouterr().out
     assert "0.3 m voxels" in out and "Planning time" in out
+
+
+@pytest.mark.parametrize("voxel", [0.5, 0.25])
+@pytest.mark.parametrize("name", ["simple", "hard"])
+def test_plans_keep_drone_radius_clear(name, voxel):
+    """Regression (#52): a successful plan must keep the drone radius clear of every obstacle,
+    at the default and at a finer map resolution. Before the fix, the corridor repair merged
+    segments through obstacle inflation (0.355 m clearance on `simple`, contact on `hard`)."""
+    s = load(name)
+    s.voxel_resolution = voxel
+    result, _ = s.plan()
+    assert result.success
+    tr = result.sampler()
+    P = tr.sample(np.linspace(tr.start_time, tr.end_time, 3000))[:, :3]
+    assert box_clearance(P, s.obstacles) >= s.drone_radius - 2e-3

@@ -108,6 +108,11 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Fixed
 
+- Planned trajectories could pass inside the drone radius, or touch an obstacle. The corridor
+  repair step merged path segments without checking line of sight, so it could replace two thin
+  corridors with one zero-width corridor through an obstacle's inflation. Merges now require a
+  clear line of sight. Over 150 random pillar fields, violations fell from 24 to 1 (0.5 m
+  voxels) and 59 to 1 (0.25 m), with no obstacle contacts. (#52)
 - The default CMake build no longer fails on machines without roscopter: `monte_carlo`, which
   needs a roscopter header, is skipped when that header is not found. (#3)
 - Windows (MSVC) build: force-include with `/FI`, `_USE_MATH_DEFINES`, `/bigobj`, `/utf-8`,

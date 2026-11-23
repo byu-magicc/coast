@@ -607,8 +607,20 @@ FrontEndSFC::get_corridors_astar(const Eigen::Vector3d &start_pos,
         const auto saved_path = continuous_path;
         const auto saved_cor = corridors;
         continuous_path.erase(continuous_path.begin() + static_cast<long>(drop));
+        // The merged segment must itself be collision-free. Counting degenerate corridors is
+        // not enough: merging two thin corridors into ONE zero-width corridor that cuts
+        // through an obstacle's inflation lowers the count, and that corridor then pins the
+        // trajectory onto a line through the obstacle (#52). Use the same line-of-sight test
+        // the smoother uses to accept a segment in the first place.
+        auto to_cell = [&](const Eigen::Vector3d & p) {
+          return Eigen::Vector3i(static_cast<int>(std::floor(p.x() / res)),
+                                 static_cast<int>(std::floor(p.y() / res)),
+                                 static_cast<int>(std::floor(p.z() / res)));
+        };
+        const bool merged_clear = astar_planner_->is_line_of_sight_clear(
+            to_cell(continuous_path[drop - 1]), to_cell(continuous_path[drop]));
         corridors = rebuild_all();
-        if (n_degenerate(corridors) < before) { fixed = true; break; }
+        if (merged_clear && n_degenerate(corridors) < before) { fixed = true; break; }
         continuous_path = saved_path;
         corridors = saved_cor;
       }
