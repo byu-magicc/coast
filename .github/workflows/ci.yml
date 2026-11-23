@@ -10,8 +10,31 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'paper/**'            # built by paper.yml
+      - 'CITATION.cff'        # checked by the Wheels workflow's version check
+      - 'LICENSE'
+      - 'licenses/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
   pull_request:
+    paths-ignore:   # keep identical to the list above
+      - '**.md'
+      - 'docs/**'
+      - 'paper/**'            # built by paper.yml
+      - 'CITATION.cff'        # checked by the Wheels workflow's version check
+      - 'LICENSE'
+      - 'licenses/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
+
+# Changes that touch only documentation (the files listed above) skip this workflow; any other
+# file in the change runs it in full. Note for maintainers: if CI checks are ever made REQUIRED
+# by branch protection, docs-only pull requests would wait forever for skipped checks, so this
+# filter would then need a different approach.
 
 permissions:
   contents: read

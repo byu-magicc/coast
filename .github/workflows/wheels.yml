@@ -13,10 +13,10 @@ name: Wheels
 
 on:
   pull_request:
-    paths: ['cpp/**', 'python/**', 'pyproject.toml', 'LICENSE', 'README.md', 'CITATION.cff', 'CHANGELOG.md', '.github/**']
+    paths: ['cpp/**', 'python/**', 'pyproject.toml', 'LICENSE', 'licenses/**', 'README.md', 'CITATION.cff', 'CHANGELOG.md', '.github/**']
   push:
     branches: [main]
-    paths: ['cpp/**', 'python/**', 'pyproject.toml', 'LICENSE', 'README.md', 'CITATION.cff', 'CHANGELOG.md', '.github/**']
+    paths: ['cpp/**', 'python/**', 'pyproject.toml', 'LICENSE', 'licenses/**', 'README.md', 'CITATION.cff', 'CHANGELOG.md', '.github/**']
   release:
     types: [published]
   workflow_dispatch:

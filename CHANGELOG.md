@@ -76,6 +76,9 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Changed
 
+- CI skips changes that touch only documentation (Markdown, `docs/`, `paper/`, `CITATION.cff`,
+  license files, issue/PR templates); any other file still runs it in full. The Wheels
+  workflow now also runs when `licenses/` changes, since those files ship in the wheels.
 - **Documentation figures and repository links:** the README opens with top-down and 3D views
   of a demo plan and has an architecture diagram (`docs/images/architecture.svg`: required
   inputs, voxel map, front end, min-snap QP, output, the re-plan loop, the main tunable
