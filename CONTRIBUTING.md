@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in Minimum-Snap-Trajectories. Bug reports, questions, documentation
+Thanks for your interest in COAST. Bug reports, questions, documentation
 fixes and code contributions are all welcome.
 
 ## Getting help and reporting problems
@@ -24,8 +24,8 @@ You need CMake ≥ 3.16, a C++17 compiler and git. Eigen, OSQP and GoogleTest ar
 automatically if they are not installed (see the README's *Building* section).
 
 ```bash
-git clone https://github.com/byu-magicc/Minimum-Snap-Trajectories.git
-cd Minimum-Snap-Trajectories
+git clone https://github.com/byu-magicc/coast.git
+cd coast
 
 # C++ engine and its tests
 cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
