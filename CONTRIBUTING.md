@@ -21,7 +21,7 @@ so support is best-effort.
 ## Development setup
 
 You need CMake ≥ 3.16, a C++17 compiler and git. Eigen, OSQP and GoogleTest are downloaded
-automatically if they are not installed (see the README's *Building* section).
+automatically if they are not installed (see [`docs/building.md`](docs/building.md)).
 
 ```bash
 git clone https://github.com/byu-magicc/coast.git
@@ -69,7 +69,7 @@ Python edits under `python/coast_planner/` take effect immediately; after changi
   benchmarking.
 - **Small problems are the under-tested regime.** After changing the planning horizon,
   corridor count or time allocation, run the stress sweep in `cpp/tools/stress_planner.cpp`
-  (see the README's *Testing* section).
+  (see [Testing in `docs/building.md`](docs/building.md#stress--edge-case-sweep)).
 - **Claims need numbers.** Performance or behaviour changes should come with a measurement
   (before and after), not just a description.
 

@@ -9,7 +9,8 @@ version = "0.1.0"
 description = "COAST: real-time minimum-snap B-spline trajectory planning through Safe Flight Corridors (C++17 engine, Python bindings)"
 readme = "README.md"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+# licenses/ holds the licenses of third-party code compiled into the wheels; see licenses/README.md
+license-files = ["LICENSE", "licenses/*"]
 authors = [{ name = "BYU MAGICC Lab" }]  # TODO (authors): add individual names/emails as wanted
 requires-python = ">=3.9"
 dependencies = ["numpy"]
@@ -41,6 +42,10 @@ classifiers = [
 # Plotting (coast_planner.plot). Kept optional so the core package stays light and headless.
 viz = ["matplotlib>=3.5"]
 test = ["pytest", "matplotlib>=3.5"]
+
+[project.scripts]
+# `coast-planner-demo`: plans through a test environment and plots it (needs [viz]); --help
+coast-planner-demo = "coast_planner._demo:main"
 
 [project.urls]
 Homepage = "https://github.com/byu-magicc/Minimum-Snap-Trajectories"

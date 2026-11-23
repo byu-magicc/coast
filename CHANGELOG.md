@@ -14,6 +14,20 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Added
 
+- **Demo environments** (`coast_planner.scenarios`): `coast-planner-demo --env NAME` plans
+  through the built-in `simple` or `hard` environment, or a user-designed JSON file, all the
+  way to the goal (no planning horizon). `--mode sfc|free|both` picks the
+  corridor-constrained plan, the unconstrained solve or both; `--voxel` sets the map
+  resolution; `--export FILE` writes an environment as editable JSON; `--verbose` shows the
+  planner log. The demo reports planning time and classifies the result: exit status 1 when
+  a successful plan comes too close to an obstacle or misses the goal (likely a bug), 2 when
+  there is no trajectory (including optimiser refusals, which are not necessarily bugs).
+  `plot_trajectory` gains `obstacles=`.
+- `licenses/`: license texts and notices for the third-party code compiled into the wheels
+  (OSQP, QDLDL, AMD, Eigen, pybind11, nanoflann), included in every wheel. The library is
+  compiled with `EIGEN_MPL2_ONLY` as a guard against including any non-MPL2 Eigen code.
+- Citation of the COAST paper (arXiv:2611.22447) in the README and as the preferred citation
+  in `CITATION.cff`. (#1)
 - **Wheel builds** (`.github/workflows/wheels.yml`, cibuildwheel): CPython 3.9–3.14 wheels for
   Linux (x86_64, aarch64), macOS (Intel, Apple Silicon) and Windows (x86_64), each tested in a
   clean environment, plus a tested sdist. Publishing to TestPyPI and PyPI through trusted
@@ -45,6 +59,9 @@ The first release, 0.1.0, will be cut from this section.
   `plot_trajectory`, `plot_profiles` and `plot_plan` for trajectories, derivative profiles
   and plans with their corridors and obstacles. Python `Corridor` objects gain `vertices`.
   (#27)
+- `coast-planner-demo` command, installed with the package: runs the plotting demo after a
+  `pip install` without cloning the repository (the code moved to `coast_planner._demo`;
+  `python/examples/plot_demo.py` still works).
 - **Continuous integration** on Linux, macOS and Windows: C++ build, tests and example, plus
   `pip install` and pytest on Python 3.9 and 3.13. (#3, #7)
 - **Dependency bundling:** Eigen 3.4.0, OSQP v1.0.0 and GoogleTest 1.15.2 are downloaded when
@@ -53,9 +70,23 @@ The first release, 0.1.0, will be cut from this section.
 - BSD 3-Clause license.
 - Contributing guide, code of conduct (Contributor Covenant 2.1), and issue and
   pull-request templates. (#24)
+- `CITATION.cff` with authors and ORCIDs (GitHub's "Cite this repository" button; read by
+  Zenodo for release DOIs), and a Citing section in the README. (#15)
+
+- Release check: the Wheels workflow verifies that the tag, `pyproject.toml`, `CITATION.cff`
+  and `CHANGELOG.md` agree on the version (and release date) before anything is published.
 
 ### Changed
 
+- Copyright holder in `LICENSE` is Brigham Young University.
+- `plot_demo.py` checks whether plot windows can open and, if not (Python without Tcl/Tk,
+  no display), explains why and saves the plots as PNGs instead of failing or silently
+  showing nothing. README prerequisites now list `python3-tk` (Ubuntu), the Tcl/Tk
+  installer option (Windows), and `conda deactivate` before using the venv.
+- README rewritten as a short overview: what COAST is, step-by-step installation from the
+  repository for Linux, macOS and Windows, one example, and pointers to the ROSflight
+  integration. The detailed material moved unchanged into `docs/` (how it works, Python and
+  C++ guides, configuration, building and development, limitations).
 - **Renamed the Python package to COAST's name:** install with `pip install coast-planner`,
   import as `coast_planner` (previously `min-snap` / `min_snap`, never published). The C++
   library target `min_snap_engine` and the `MIN_SNAP_*` CMake options are unchanged, so C++
@@ -89,5 +120,7 @@ The first release, 0.1.0, will be cut from this section.
 - The README documented `unknown_traversal_cost = 2.0`, a value that makes A* flood outward;
   the real default is 0.5. Also corrected `astar_max_nodes` (3000) and `planning_horizon`
   (12.0). (#8)
+- README: the Ubuntu prerequisites now include `python3-dev`, without which `pip install`
+  fails on a fresh install. (#46)
 
 [Unreleased]: https://github.com/byu-magicc/Minimum-Snap-Trajectories/commits/main
