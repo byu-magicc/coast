@@ -78,6 +78,7 @@ def _demo(tmp_path, env):
 
 
 def test_demo_reports_goal_outside_geofence_as_invalid(tmp_path, capsys):
+    pytest.importorskip("matplotlib")  # the demo checks for it before planning
     code = _demo(tmp_path, {"start": [0, 0, -3], "goal": [80, 0, -3], "obstacles": [],
                             "config": {"map_bounds": [100, 100, 0]}})
     assert code == 2
@@ -85,6 +86,7 @@ def test_demo_reports_goal_outside_geofence_as_invalid(tmp_path, capsys):
 
 
 def test_demo_reports_goal_above_ceiling_as_invalid(tmp_path, capsys):
+    pytest.importorskip("matplotlib")  # the demo checks for it before planning
     code = _demo(tmp_path, {"start": [0, 0, -3], "goal": [10, 0, -9], "obstacles": [],
                             "config": {"max_altitude": 6.0}})
     assert code == 2
