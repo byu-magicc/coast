@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 470" width="1280" height="470" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">COAST architecture</title>
+<desc id="d">Inputs feed a voxel map, then an A* and Safe Flight Corridor front end, then a minimum-snap quadratic program with MINVO bounds, producing B-spline control points. The multirotor flies the trajectory and the planner re-plans with each new scan.</desc>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#495057"/></marker></defs>
+<rect width="1280" height="470" fill="#FFFFFF"/>
+<text x="640.0" y="44" text-anchor="middle" font-size="24" font-weight="700" fill="#212529">COAST: Corridor-Optimized Aerially-Safe Trajectories</text>
+<rect x="20" y="80" width="210" height="284" rx="10" fill="#F8F9FA" stroke="#868E96" stroke-width="1.5"/>
+<path d="M20 134 V90 a10 10 0 0 1 10 -10 H220 a10 10 0 0 1 10 10 V134 Z" fill="#E9ECEF" stroke="#868E96" stroke-width="1.5"/>
+<text x="125.0" y="104" text-anchor="middle" font-size="17" font-weight="700" fill="#212529">Inputs</text>
+<text x="125.0" y="123" text-anchor="middle" font-size="12" fill="#495057" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">per replan</text>
+<circle cx="36" cy="155.5" r="3" fill="#868E96"/>
+<text x="46" y="160" font-size="13.5" fill="#343A40">LiDAR returns</text>
+<text x="46" y="178" font-size="13.5" fill="#343A40">+ sensor origin</text>
+<circle cx="36" cy="200.5" r="3" fill="#868E96"/>
+<text x="46" y="205" font-size="13.5" fill="#343A40">Current state &amp; goal</text>
+<circle cx="36" cy="227.5" r="3" fill="#868E96"/>
+<text x="46" y="232" font-size="13.5" fill="#343A40">Velocity / accel limits</text>
+<circle cx="36" cy="254.5" r="3" fill="#868E96"/>
+<text x="46" y="259" font-size="13.5" fill="#343A40">Spline degree</text>
+<circle cx="36" cy="281.5" r="3" fill="#868E96"/>
+<text x="46" y="286" font-size="13.5" fill="#343A40">Vehicle radius</text>
+<circle cx="36" cy="308.5" r="3" fill="#868E96"/>
+<text x="46" y="313" font-size="13.5" fill="#343A40">Max corridor width</text>
+<text x="46" y="331" font-size="13.5" fill="#343A40">and height</text>
+<rect x="270" y="80" width="230" height="284" rx="10" fill="#F3F9FF" stroke="#1C7ED6" stroke-width="1.5"/>
+<path d="M270 134 V90 a10 10 0 0 1 10 -10 H490 a10 10 0 0 1 10 10 V134 Z" fill="#D0EBFF" stroke="#1C7ED6" stroke-width="1.5"/>
+<text x="385.0" y="104" text-anchor="middle" font-size="17" font-weight="700" fill="#212529">1  Voxel map</text>
+<text x="385.0" y="123" text-anchor="middle" font-size="12" fill="#495057" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">SparseVoxelGrid</text>
+<circle cx="286" cy="155.5" r="3" fill="#1C7ED6"/>
+<text x="296" y="160" font-size="13.5" fill="#343A40">Three-state cells:</text>
+<text x="296" y="178" font-size="13.5" fill="#343A40">free / occupied / unknown</text>
+<circle cx="286" cy="200.5" r="3" fill="#1C7ED6"/>
+<text x="296" y="205" font-size="13.5" fill="#343A40">Beams raycast from the</text>
+<text x="296" y="223" font-size="13.5" fill="#343A40">sensor clear stale cells</text>
+<circle cx="286" cy="245.5" r="3" fill="#1C7ED6"/>
+<text x="296" y="250" font-size="13.5" fill="#343A40">Accumulated across scans</text>
+<text x="296" y="268" font-size="13.5" fill="#343A40">in a rolling window</text>
+<rect x="540" y="80" width="230" height="284" rx="10" fill="#F1FDF8" stroke="#0CA678" stroke-width="1.5"/>
+<path d="M540 134 V90 a10 10 0 0 1 10 -10 H760 a10 10 0 0 1 10 10 V134 Z" fill="#C3FAE8" stroke="#0CA678" stroke-width="1.5"/>
+<text x="655.0" y="104" text-anchor="middle" font-size="17" font-weight="700" fill="#212529">2  Front end</text>
+<text x="655.0" y="123" text-anchor="middle" font-size="12" fill="#495057" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">FrontEndSFC</text>
+<circle cx="556" cy="155.5" r="3" fill="#0CA678"/>
+<text x="566" y="160" font-size="13.5" fill="#343A40">A* search: obstacles</text>
+<text x="566" y="178" font-size="13.5" fill="#343A40">inflated by vehicle radius,</text>
+<text x="566" y="196" font-size="13.5" fill="#343A40">unknown cells penalised</text>
+<circle cx="556" cy="218.5" r="3" fill="#0CA678"/>
+<text x="566" y="223" font-size="13.5" fill="#343A40">Line-of-sight smoothing</text>
+<text x="566" y="241" font-size="13.5" fill="#343A40">to a few waypoints</text>
+<circle cx="556" cy="263.5" r="3" fill="#0CA678"/>
+<text x="566" y="268" font-size="13.5" fill="#343A40">Safe Flight Corridors: one</text>
+<text x="566" y="286" font-size="13.5" fill="#343A40">box per segment, each face</text>
+<text x="566" y="304" font-size="13.5" fill="#343A40">resized to local obstacles</text>
+<circle cx="556" cy="326.5" r="3" fill="#0CA678"/>
+<text x="566" y="331" font-size="13.5" fill="#343A40">Control points allocated</text>
+<text x="566" y="349" font-size="13.5" fill="#343A40">by corridor length</text>
+<rect x="810" y="80" width="230" height="284" rx="10" fill="#FFF8F0" stroke="#E8590C" stroke-width="1.5"/>
+<path d="M810 134 V90 a10 10 0 0 1 10 -10 H1030 a10 10 0 0 1 10 10 V134 Z" fill="#FFE8CC" stroke="#E8590C" stroke-width="1.5"/>
+<text x="925.0" y="104" text-anchor="middle" font-size="17" font-weight="700" fill="#212529">3  Optimizer</text>
+<text x="925.0" y="123" text-anchor="middle" font-size="12" fill="#495057" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">min-snap QP (OSQP)</text>
+<circle cx="826" cy="155.5" r="3" fill="#E8590C"/>
+<text x="836" y="160" font-size="13.5" fill="#343A40">Precomputed snap penalty</text>
+<text x="836" y="178" font-size="13.5" fill="#343A40">matrix: quadratic cost</text>
+<circle cx="826" cy="200.5" r="3" fill="#E8590C"/>
+<text x="836" y="205" font-size="13.5" fill="#343A40">Control points held in</text>
+<text x="836" y="223" font-size="13.5" fill="#343A40">corridors and their</text>
+<text x="836" y="241" font-size="13.5" fill="#343A40">intersections</text>
+<circle cx="826" cy="263.5" r="3" fill="#E8590C"/>
+<text x="836" y="268" font-size="13.5" fill="#343A40">MINVO velocity and</text>
+<text x="836" y="286" font-size="13.5" fill="#343A40">acceleration bounds</text>
+<circle cx="826" cy="308.5" r="3" fill="#E8590C"/>
+<text x="836" y="313" font-size="13.5" fill="#343A40">One sparse QP, no</text>
+<text x="836" y="331" font-size="13.5" fill="#343A40">integer variables</text>
+<rect x="1080" y="80" width="180" height="284" rx="10" fill="#F8F9FA" stroke="#868E96" stroke-width="1.5"/>
+<path d="M1080 134 V90 a10 10 0 0 1 10 -10 H1250 a10 10 0 0 1 10 10 V134 Z" fill="#E9ECEF" stroke="#868E96" stroke-width="1.5"/>
+<text x="1170.0" y="104" text-anchor="middle" font-size="17" font-weight="700" fill="#212529">Output</text>
+<text x="1170.0" y="123" text-anchor="middle" font-size="12" fill="#495057" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">PlanningResult</text>
+<circle cx="1096" cy="155.5" r="3" fill="#868E96"/>
+<text x="1106" y="160" font-size="13.5" fill="#343A40">B-spline control</text>
+<text x="1106" y="178" font-size="13.5" fill="#343A40">points + knots</text>
+<circle cx="1096" cy="200.5" r="3" fill="#868E96"/>
+<text x="1106" y="205" font-size="13.5" fill="#343A40">Obstacle-free,</text>
+<text x="1106" y="223" font-size="13.5" fill="#343A40">time-parameterised,</text>
+<text x="1106" y="241" font-size="13.5" fill="#343A40">snap-minimised</text>
+<circle cx="1096" cy="263.5" r="3" fill="#868E96"/>
+<text x="1106" y="268" font-size="13.5" fill="#343A40">Within velocity and</text>
+<text x="1106" y="286" font-size="13.5" fill="#343A40">acceleration limits</text>
+<line x1="234" y1="222.0" x2="266" y2="222.0" stroke="#495057" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="504" y1="222.0" x2="536" y2="222.0" stroke="#495057" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="774" y1="222.0" x2="806" y2="222.0" stroke="#495057" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1044" y1="222.0" x2="1076" y2="222.0" stroke="#495057" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M1170.0 368 V422 H125.0 V370" fill="none" stroke="#495057" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<rect x="405.0" y="402.0" width="470" height="40" rx="20" fill="#FFFFFF" stroke="#495057" stroke-width="1.5"/>
+<text x="640.0" y="427" text-anchor="middle" font-size="14" fill="#212529"><tspan font-weight="700">Multirotor</tspan> tracks the spline · new scan → re-plan at 10 Hz</text>
+</svg>

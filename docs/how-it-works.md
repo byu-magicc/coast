@@ -2,6 +2,8 @@
 
 ## Pipeline
 
+![COAST architecture: inputs, voxel map, A* and Safe Flight Corridor front end, minimum-snap QP, B-spline output, re-planned each scan](images/architecture.svg)
+
 ```
 LiDAR returns + sensor origin
         │
