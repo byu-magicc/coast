@@ -4,6 +4,11 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2611.22447-b31b1b)](https://arxiv.org/abs/2611.22447)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/LICENSE)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/demo-plan-2d.png" alt="Top-down view of a COAST plan: four Safe Flight Corridors around two obstacles, with the trajectory coloured by speed from start to goal" width="49%">
+  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/demo-plan-3d.png" alt="3D view of the same COAST plan, showing the corridors as boxes and the obstacles as pillars" width="49%">
+</p>
+
 COAST is a real-time trajectory planner for multirotors flying through cluttered,
 partially-unknown environments. Given a start state, a goal and LiDAR returns, it produces a
 smooth, snap-minimised B-spline trajectory that is kept inside Safe Flight Corridors as a
@@ -28,6 +33,14 @@ give no collision guarantee, while corridor-based methods are safe but slow. COA
 
 Known limitations, including the exceptions to corridor containment, are listed in
 [docs/limitations.md](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/limitations.md).
+
+## Architecture
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/architecture.svg" alt="COAST architecture: inputs feed a voxel map, an A* and Safe Flight Corridor front end, then a minimum-snap QP with MINVO bounds, producing B-spline control points; the multirotor re-plans with each new scan" width="100%">
+</p>
+
+Each stage is described in [docs/how-it-works.md](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/how-it-works.md).
 
 ## Installation
 
