@@ -111,6 +111,10 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Fixed
 
+- `coast-planner-demo` opens plot windows from a Python 3.13.0 virtual environment on Windows,
+  where Tcl can't find its library ("Can't find a usable init.tcl"; fixed upstream in 3.13.1):
+  it points Tcl at the base installation and retries. (#48; restored after #49 overwrote it,
+  now with tests)
 - The default CMake build no longer fails on machines without roscopter: `monte_carlo`, which
   needs a roscopter header, is skipped when that header is not found. (#3)
 - Windows (MSVC) build: force-include with `/FI`, `_USE_MATH_DEFINES`, `/bigobj`, `/utf-8`,
