@@ -13,6 +13,23 @@ namespace trajectory_planner {
 // Specialized for the common case where B = Identity(n).
 // Result has dims (A.rows()*n, A.cols()*n).
 // ==========================================
+// Optional map_bounds geofence as half-planes |p_axis| <= map_bounds(axis)/2, about the world
+// origin, for the axes that are set (> 0). Unset axes get no rows; with none set, (0 x 3, 0).
+static std::pair<Eigen::MatrixXd, Eigen::VectorXd> map_bound_rows(
+    const Eigen::Vector3d& map_bounds) {
+    std::vector<int> axes;
+    for (int a = 0; a < 3; ++a) if (map_bounds(a) > 0.0) axes.push_back(a);
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2 * static_cast<int>(axes.size()), 3);
+    Eigen::VectorXd b(2 * static_cast<int>(axes.size()));
+    for (std::size_t k = 0; k < axes.size(); ++k) {
+        const int r = 2 * static_cast<int>(k);
+        A(r, axes[k]) = 1.0;
+        A(r + 1, axes[k]) = -1.0;
+        b(r) = b(r + 1) = map_bounds(axes[k]) / 2.0;
+    }
+    return {A, b};
+}
+
 static Eigen::SparseMatrix<double> kron_with_identity(
     const Eigen::SparseMatrix<double>& A, int n)
 {
@@ -771,27 +788,12 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
     int total_pts = 0;
     for (const auto& pool : pools) total_pts += pool.pts;
 
-    // Map boundary hyperplanes: [+x, -x, +y, -y, +z, -z]
-    //
-    // The geofence must match the one A* searches in (front_end.cpp builds the A*
-    // bounds as +/- map_bounds/2 about the origin), and it must be expressed in NED,
-    // where z is NEGATIVE-up. The previous form (b = [X, 0, Y, 0, Z, 0]) encoded a
-    // positive-orthant box, which imposes x>=0, y>=0 and -- fatally -- z>=0, i.e. it
-    // required every control point to sit at or below ground level. That made the QP
-    // primal infeasible on every replan flown at a positive altitude.
-    double half_north = config_.map_bounds.x() / 2.0;
-    double half_east = config_.map_bounds.y() / 2.0;
-    double half_alt = config_.map_bounds.z() / 2.0;
-
-    Eigen::MatrixXd A_map(6, 3);
-    A_map << 1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-             0.0,  1.0,  0.0,
-             0.0, -1.0,  0.0,
-             0.0,  0.0,  1.0,
-             0.0,  0.0, -1.0;
-    Eigen::VectorXd b_map(6);
-    b_map << half_north, half_north, half_east, half_east, half_alt, half_alt;
+    // Optional map_bounds geofence (see FrontEndConfig::map_bounds). Expressed in NED, where z
+    // is NEGATIVE-up; only the axes that are set get rows.
+    const auto [A_map, b_map] = map_bound_rows(config_.map_bounds);
+    const double half_north = config_.map_bounds.x() / 2.0;
+    const double half_east = config_.map_bounds.y() / 2.0;
+    const double half_alt = config_.map_bounds.z() / 2.0;
 
     std::vector<Eigen::MatrixXd> A_rows;
     std::vector<Eigen::VectorXd> b_rows;
@@ -821,16 +823,16 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
         for (int sfc_idx : pool.sfc_indices) {
             const Eigen::Matrix<double, 3, 8> verts = corridors[sfc_idx].getAllVertices_3D();
             for (int v = 0; v < 8; ++v) {
-                if (std::abs(verts(0, v)) > half_north - kMapMargin ||
-                    std::abs(verts(1, v)) > half_east  - kMapMargin ||
-                    std::abs(verts(2, v)) > half_alt   - kMapMargin) {
+                if ((half_north > 0.0 && std::abs(verts(0, v)) > half_north - kMapMargin) ||
+                    (half_east  > 0.0 && std::abs(verts(1, v)) > half_east  - kMapMargin) ||
+                    (half_alt   > 0.0 && std::abs(verts(2, v)) > half_alt   - kMapMargin)) {
                     map_rows_can_bind = true;
                     break;
                 }
             }
             if (map_rows_can_bind) break;
         }
-        if (map_rows_can_bind) {
+        if (map_rows_can_bind && A_map.rows() > 0) {
             A_parts.push_back(A_map);
             b_parts.push_back(b_map);
         }
@@ -925,21 +927,9 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
     int num_dimensions = 3;
     int degree = config_.degree;
 
-    // NED-symmetric geofence, matching the A* bounds (see build_overlap_constraints).
-    double half_north = config_.map_bounds.x() / 2.0;
-    double half_east = config_.map_bounds.y() / 2.0;
-    double half_alt = config_.map_bounds.z() / 2.0;
-
-    // Map boundary hyperplanes
-    Eigen::MatrixXd A_map(6, 3);
-    A_map << 1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-             0.0,  1.0,  0.0,
-             0.0, -1.0,  0.0,
-             0.0,  0.0,  1.0,
-             0.0,  0.0, -1.0;
-    Eigen::VectorXd b_map(6);
-    b_map << half_north, half_north, half_east, half_east, half_alt, half_alt;
+    // Optional map_bounds geofence; only the axes that are set get rows (possibly none).
+    const auto [A_map, b_map] = map_bound_rows(config_.map_bounds);
+    const int map_rows = static_cast<int>(A_map.rows());
 
     std::vector<Eigen::MatrixXd> A_ineq_list;
     std::vector<Eigen::VectorXd> b_ineq_list;
@@ -948,22 +938,22 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
     for (size_t i = 0; i < corridors.size(); ++i) {
         // Intersect SFC with map bounding box
         int sfc_rows = static_cast<int>(corridors[i].A_mat.rows());
-        int total_ineq = sfc_rows + 6;
+        int total_ineq = sfc_rows + map_rows;
 
         Eigen::MatrixXd A_mat(total_ineq, 3);
         A_mat.topRows(sfc_rows) = corridors[i].A_mat;
-        A_mat.bottomRows(6) = A_map;
+        if (map_rows > 0) A_mat.bottomRows(map_rows) = A_map;
 
         Eigen::VectorXd b_vec(total_ineq);
         b_vec.head(sfc_rows) = corridors[i].b_vec;
-        b_vec.tail(6) = b_map;
+        if (map_rows > 0) b_vec.tail(map_rows) = b_map;
 
         // Virtual runway logic for natural splines
         if (config_.spline_type == "natural") {
             if (i == 0 || i == corridors.size() - 1) {
                 // Map hyperplanes are the final 6 rows (appended after the SFC rows).
                 double runway_length = 30.0;
-                for (int k = total_ineq - 6; k < total_ineq; ++k) {
+                for (int k = total_ineq - map_rows; k < total_ineq; ++k) {
                     b_vec(k) += runway_length;
                 }
             }

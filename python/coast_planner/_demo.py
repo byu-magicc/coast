@@ -27,6 +27,7 @@ Coordinates are NED; plots display East-North-Up (altitude = -z).
 import argparse
 import contextlib
 import os
+import sys
 
 import numpy as np
 
@@ -93,13 +94,32 @@ def _samples(sampler, n=2000):
 
 
 def check_endpoints(scenario):
-    """Problems with the environment itself: a start or goal inside an obstacle's inflation."""
+    """Problems with the environment itself, found before planning.
+
+    A start or goal inside an obstacle's inflation, or a goal the configured limits put out of
+    reach: outside an explicit ``map_bounds`` geofence, above ``max_altitude`` or below
+    ``min_altitude``. (The start may be outside the limits: the planner routes back in.)
+    """
     problems = []
     for label, p in (("start", scenario.start), ("goal", scenario.goal)):
         clearance = box_clearance(p, scenario.obstacles) if scenario.obstacles else np.inf
         if clearance < scenario.drone_radius:
             problems.append(f"the {label} {list(p)} is within the drone radius "
                             f"({scenario.drone_radius} m) of an obstacle")
+    cfg = scenario.front_end_config()
+    goal = np.asarray(scenario.goal, dtype=float)
+    for axis, name in enumerate(("x (North)", "y (East)", "z (Down)")):
+        extent = float(cfg.map_bounds[axis])
+        if extent > 0 and abs(goal[axis]) > extent / 2:
+            problems.append(f"the goal's {name} = {goal[axis]:g} m is outside the map_bounds "
+                            f"geofence (+/-{extent / 2:g} m about the origin)")
+    altitude = -goal[2]
+    if cfg.max_altitude > 0 and altitude > cfg.max_altitude:
+        problems.append(f"the goal's altitude ({altitude:g} m) is above max_altitude "
+                        f"({cfg.max_altitude:g} m)")
+    if cfg.min_altitude > 0 and altitude < cfg.min_altitude:
+        problems.append(f"the goal's altitude ({altitude:g} m) is below min_altitude "
+                        f"({cfg.min_altitude:g} m)")
     return problems
 
 
@@ -229,10 +249,12 @@ def main(argv=None):
     try:
         scenario = load(args.env)
     except (OSError, ValueError, KeyError, TypeError) as e:
-        raise SystemExit(f"Cannot load environment {args.env!r}: {e}")
+        print(f"Cannot load environment {args.env!r}: {e}", file=sys.stderr)
+        raise SystemExit(_OUTCOMES["invalid"][1])
     if args.voxel is not None:
         if args.voxel <= 0:
-            raise SystemExit("--voxel must be positive")
+            print("--voxel must be positive", file=sys.stderr)
+            raise SystemExit(_OUTCOMES["invalid"][1])
         scenario.voxel_resolution = args.voxel
     if args.export:
         scenario.save(args.export)

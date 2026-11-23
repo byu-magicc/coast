@@ -37,7 +37,17 @@ struct FrontEndConfig {
     std::string spline_type = "clamped";
     std::string aircraft_type = "multi-rotor";
     int degree = 4;
-    Eigen::Vector3d map_bounds = Eigen::Vector3d(100.0, 100.0, 15.0);
+    // Optional geofence: full extent (x, y, z) in metres of a box centred on the world origin, so
+    // an axis set to L confines planning to [-L/2, +L/2] on it. An axis <= 0 has no limit, and the
+    // default is no limit on any axis. When set, both A* and the optimiser respect it.
+    //
+    // It used to default to (100, 100, 15), a placeholder that acted as a real limit by accident:
+    // the optimiser then added +/-50 m planes about the origin whenever a corridor came near them
+    // (so a single plan to a goal 52 m away failed, while the same plan with a larger map
+    // succeeded), and z = 15 was a silent 7.5 m altitude ceiling. Altitude limits now come from
+    // min_altitude / max_altitude; the A* search box is sized from the planning horizon (or, with
+    // no horizon, from the start-to-goal distance).
+    Eigen::Vector3d map_bounds = Eigen::Vector3d::Zero();
     double sensor_range = -1.0;   // meters, -1 = disabled (full map visibility)
     double fov_vertical_min = -7.0; // degrees, bottom edge of FOV
     double fov_vertical_max = 52.0; // degrees, top edge of FOV
@@ -465,8 +475,13 @@ private:
     std::unique_ptr<mapping::RingBufferGrid> ring_buffer_;   // unused; see the constructor
     /// Absolute vertical geofence, in voxel indices. Altitude is a real world limit, so unlike
     /// the horizontal bounds these do NOT follow the vehicle.
-    int astar_z_min_ = 0;
-    int astar_z_max_ = 0;
+    // Fixed vertical A* limits (voxel z indices, NED: higher altitude = more negative), present only
+    // when configured: the ceiling from max_altitude or map_bounds.z, the bottom from map_bounds.z.
+    // Without one, the search box around the start bounds that side.
+    bool has_ceiling_ = false;
+    int ceiling_z_ = 0;
+    bool has_bottom_ = false;
+    int bottom_z_ = 0;
 
     // SFC generators
     sfc::AsymmetricSFCManager sfc_manager_;

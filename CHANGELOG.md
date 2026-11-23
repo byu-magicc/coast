@@ -85,6 +85,15 @@ The first release, 0.1.0, will be cut from this section.
   parameters and a QR code to the repository). Links, clone instructions, the `pyproject.toml`
   project URLs, `CITATION.cff` and the PyPI trusted-publisher setup in `RELEASING.md` now use
   the repository's new name, `byu-magicc/coast`.
+- **No built-in map size.** `FrontEndConfig.map_bounds` is now an optional geofence, off by
+  default (it was a 100 x 100 x 15 m placeholder centred on the origin). When set, both A* and
+  the optimiser respect it; unset axes have no limit. The A* search box is sized from the
+  planning horizon or, with no horizon, the start-to-goal distance (it was a fixed 60 m).
+  Altitude limits come from `min_altitude` and `max_altitude` only: **there is no implicit
+  7.5 m ceiling any more**, so set `max_altitude` if the vehicle must stay below a height. (#53)
+- `coast-planner-demo` reports a goal outside the `map_bounds` geofence or the altitude limits
+  as an invalid environment, and exits with 2 for invalid environment files and arguments
+  (it exited with 1, the code for a likely planner bug). (#53)
 - Copyright holder in `LICENSE` is Brigham Young University.
 - `plot_demo.py` checks whether plot windows can open and, if not (Python without Tcl/Tk,
   no display), explains why and saves the plots as PNGs instead of failing or silently

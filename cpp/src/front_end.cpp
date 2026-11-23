@@ -72,40 +72,27 @@ FrontEndSFC::FrontEndSFC(const FrontEndConfig &config,
     }
   }
 
-  // Initial geofence. The horizontal half-extents are replaced per-search in
-  // get_corridors_astar() so the box follows the vehicle; only the VERTICAL
-  // limits are a real world constraint (how high/low the vehicle may plan) and
-  // stay absolute.
+  // Fixed vertical limits, when configured. The search box itself is set per-search in
+  // get_corridors_astar() around the start (horizontally, and vertically where no limit is set).
   //
-  // These were previously fixed here for the whole mission, centred on the
-  // world origin, which turned a search bound into a MISSION bound: at
-  // map_bounds 100 m and 0.5 m voxels the box is
-  // +/-50 m about (0,0), so a 105 m course hit an invisible wall at its
-  // midpoint.
-  Eigen::Vector3i bounds_min(
-      static_cast<int>(-config_.map_bounds.x() /
-                       (2.0 * config_.voxel_resolution)),
-      static_cast<int>(-config_.map_bounds.y() /
-                       (2.0 * config_.voxel_resolution)),
-      static_cast<int>(-config_.map_bounds.z() /
-                       (2.0 * config_.voxel_resolution)));
-  Eigen::Vector3i bounds_max(
-      static_cast<int>(config_.map_bounds.x() /
-                       (2.0 * config_.voxel_resolution)),
-      static_cast<int>(config_.map_bounds.y() /
-                       (2.0 * config_.voxel_resolution)),
-      static_cast<int>(config_.map_bounds.z() /
-                       (2.0 * config_.voxel_resolution)));
-
-  // NED: altitude a is at z = -a, so the HIGHEST altitude is the MOST NEGATIVE
-  // index and belongs in the lower bound. Getting this backwards silently
-  // inverts the ceiling into a floor, so keep the sign reasoning here rather
-  // than at the call site.
-  astar_z_min_ = (config_.max_altitude > 0.0)
-                     ? static_cast<int>(std::floor(-config_.max_altitude /
-                                                   config_.voxel_resolution))
-                     : bounds_min.z();
-  astar_z_max_ = bounds_max.z();
+  // NED: altitude a is at z = -a, so the HIGHEST altitude is the MOST NEGATIVE index and is the
+  // LOWER z bound. Getting this backwards silently inverts the ceiling into a floor, so keep the
+  // sign reasoning here rather than at the call site.
+  const double res0 = config_.voxel_resolution;
+  if (config_.max_altitude > 0.0) {
+    has_ceiling_ = true;
+    ceiling_z_ = static_cast<int>(std::floor(-config_.max_altitude / res0));
+  } else if (config_.map_bounds.z() > 0.0) {
+    has_ceiling_ = true;
+    ceiling_z_ = static_cast<int>(-config_.map_bounds.z() / (2.0 * res0));
+  }
+  if (config_.map_bounds.z() > 0.0) {
+    has_bottom_ = true;
+    bottom_z_ = static_cast<int>(config_.map_bounds.z() / (2.0 * res0)) - 1;  // last cell inside
+  }
+  // Placeholder bounds until the first search sets real ones.
+  const Eigen::Vector3i bounds_min = Eigen::Vector3i::Constant(-1);
+  const Eigen::Vector3i bounds_max = Eigen::Vector3i::Constant(1);
   astar_planner_ = std::make_unique<path_finding::AStarSFCPlanner>(
       astar_grid_, bounds_min, bounds_max);
   astar_planner_->set_collinear_merge(config_.astar_collinear_merge);
@@ -177,46 +164,44 @@ FrontEndSFC::get_corridors_astar(const Eigen::Vector3d &start_pos,
                                   (config_.planning_horizon / goal_dist);
   }
 
-  // Re-centre the horizontal geofence on the vehicle before searching.
-  //
-  // The bound exists to stop A* wandering unboundedly, not to cap how far the
-  // mission may go, so it belongs around the START, not around the world
-  // origin. Sized at 3x the planning horizon: comfortably larger than any
-  // legitimate detour around a local obstacle, while still bounding the search.
-  // The vertical limits stay as constructed -- altitude IS a real world
-  // constraint.
+  // Bound the search to a box around the START: it exists to stop A* wandering unboundedly, not
+  // to cap how far the mission may go. Sized at 3x the search distance -- the planning horizon,
+  // or with no horizon the distance to the goal -- which is comfortably larger than any
+  // legitimate detour while still bounding the search. (With no horizon this used to be a fixed
+  // 60 m, so a goal 61 m away came back short.) An optional map_bounds geofence clips the box;
+  // altitude limits replace its vertical extent where configured.
   {
-    const double pad_m =
-        (config_.planning_horizon > 0.0 ? config_.planning_horizon : 20.0) *
-        3.0;
-    const int pad = static_cast<int>(std::ceil(pad_m / res));
-
-    // The ceiling must never EXCLUDE THE VEHICLE. max_altitude says where we
-    // would like to fly; it is not a reason to be unable to plan from where we
-    // actually are. If the vehicle is above it, extend the geofence to contain
-    // the start so the search can route back DOWN into legal airspace --
-    // excluding the start instead leaves A* searching from a cell outside its
-    // own bounds, and planning simply stops.
+    const double search_dist =
+        config_.planning_horizon > 0.0 ? config_.planning_horizon : goal_dist;
+    const int pad = std::max(1, static_cast<int>(std::ceil(3.0 * search_dist / res)));
+    Eigen::Vector3i lo = start_idx - Eigen::Vector3i::Constant(pad);
+    Eigen::Vector3i hi = start_idx + Eigen::Vector3i::Constant(pad);
+    for (int axis = 0; axis < 2; ++axis) {   // horizontal geofence, when set
+      if (config_.map_bounds(axis) > 0.0) {
+        // Cells -half .. half-1 lie inside [-L/2, +L/2]; cell `half` starts AT the boundary.
+        const int half = static_cast<int>(config_.map_bounds(axis) / (2.0 * res));
+        lo(axis) = std::max(lo(axis), -half);
+        hi(axis) = std::min(hi(axis), half - 1);
+      }
+    }
+    if (has_ceiling_) lo.z() = ceiling_z_;
+    if (has_bottom_) hi.z() = bottom_z_;
+    // The limits must never EXCLUDE THE VEHICLE. max_altitude says where we would like to fly;
+    // it is not a reason to be unable to plan from where we actually are. If the vehicle is
+    // above it (or outside the geofence), extend the box to contain the start so the search
+    // can route back into legal airspace -- excluding the start instead leaves A* searching
+    // from a cell outside its own bounds, and planning simply stops.
     //
-    // This is not hypothetical. Takeoff overshoots the 3 m cruise altitude by
-    // ~4.4 m in EVERY run measured (vertical peak_true 4.26-4.91 m across ten
-    // flights), putting the vehicle near 7.4 m against a 6.0 m max_altitude --
-    // z index -14/-15 against a floor of -12. Symptom: the vehicle climbs away
-    // at takeoff and then cannot plan at all.
-    //
-    // NED: higher altitude is MORE NEGATIVE, so containing the start means
-    // taking the min.
-    const int z_lo = config_.geofence_contains_vehicle
-                         ? std::min(astar_z_min_, start_idx.z())
-                         : astar_z_min_;
-    const int z_hi = config_.geofence_contains_vehicle
-                         ? std::max(astar_z_max_, start_idx.z())
-                         : astar_z_max_;
-    astar_planner_->set_bounds(
-        Eigen::Vector3i(start_idx.x() - pad, start_idx.y() - pad, z_lo),
-        Eigen::Vector3i(start_idx.x() + pad, start_idx.y() + pad, z_hi));
+    // This is not hypothetical. Takeoff overshoots the 3 m cruise altitude by ~4.4 m in EVERY
+    // run measured (vertical peak_true 4.26-4.91 m across ten flights), putting the vehicle
+    // near 7.4 m against a 6.0 m max_altitude -- z index -14/-15 against a floor of -12.
+    // Symptom: the vehicle climbs away at takeoff and then cannot plan at all.
+    if (config_.geofence_contains_vehicle) {
+      lo = lo.cwiseMin(start_idx);
+      hi = hi.cwiseMax(start_idx);
+    }
+    astar_planner_->set_bounds(lo, hi);
   }
-
   Eigen::Vector3i goal_idx(static_cast<int>(std::floor(search_goal.x() / res)),
                            static_cast<int>(std::floor(search_goal.y() / res)),
                            static_cast<int>(std::floor(search_goal.z() / res)));

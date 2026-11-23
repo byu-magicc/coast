@@ -43,8 +43,7 @@ grid.update_from_obstacles([ObstacleBox(min=[4.5, -0.5, -7.0], max=[5.5, 0.5, 0.
 # or from a sensor:  grid.update_from_scan(sensor_origin, hits)   # hits: (N, 3) array
 
 cfg = FrontEndConfig(voxel_resolution=0.5, drone_physical_radius=drone_radius,
-                     map_bounds=[100.0, 100.0, 15.0], min_altitude=drone_radius + 0.1,
-                     planning_horizon=12.0)
+                     min_altitude=drone_radius + 0.1, planning_horizon=12.0)
 planner = TrajectoryPlanner(cfg, grid, v_max=3.0, a_max=2.0)
 
 result = planner.plan_mission(start_pos=[0, 0, -3], end_pos=[10, 0, -3],

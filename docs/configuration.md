@@ -7,8 +7,9 @@ All fields of `FrontEndConfig`, with defaults:
 |---|---|---|
 | `voxel_resolution` | 0.5 | Map cell size (m). Drives cost and precision everywhere. |
 | `drone_physical_radius` | 0.5 | Circumscribed vehicle radius. Corridors are clear by this margin — **your controller's tracking error must stay below it** or the guarantee does not transfer to the vehicle. |
-| `map_bounds` | (100, 100, 15) | Full extent; usable region is ±half on each axis. |
+| `map_bounds` | (0, 0, 0) = off | Optional geofence: full extent of a box centred on the world origin, so an axis set to `L` confines planning to `±L/2`. Axes `<= 0` have no limit. Respected by both A\* and the optimiser. |
 | `min_altitude` | 0.3 | meters above ground, positive-up. |
+| `max_altitude` | -1 = off | Altitude ceiling, meters above ground (positive-up). Set it explicitly if the vehicle must stay below a height; there is no implicit ceiling. |
 
 ## Corridors
 | Field | Default | Notes |
