@@ -10,8 +10,8 @@ the patch version (0.1.0 → 0.1.1) for fixes only.
    and add a fresh, empty `## [Unreleased]` above it. Update the comparison links at the
    bottom:
    ```
-   [Unreleased]: https://github.com/byu-magicc/Minimum-Snap-Trajectories/compare/vX.Y.Z...HEAD
-   [X.Y.Z]: https://github.com/byu-magicc/Minimum-Snap-Trajectories/releases/tag/vX.Y.Z
+   [Unreleased]: https://github.com/byu-magicc/coast/compare/vX.Y.Z...HEAD
+   [X.Y.Z]: https://github.com/byu-magicc/coast/releases/tag/vX.Y.Z
    ```
 2. Set the version in **both** places, which must match:
    - `pyproject.toml`: `version = "X.Y.Z"`
@@ -63,7 +63,7 @@ Do this once per index, logged in to [pypi.org](https://pypi.org) and
    |---|---|
    | PyPI project name | `coast-planner` |
    | Owner | `byu-magicc` |
-   | Repository name | `Minimum-Snap-Trajectories` |
+   | Repository name | `coast` |
    | Workflow name | `wheels.yml` |
    | Environment name | `pypi` (on PyPI) / `testpypi` (on TestPyPI) |
 

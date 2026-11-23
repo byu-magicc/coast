@@ -23,7 +23,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-2548-5329"
     affiliation: "MAGICC Lab, Brigham Young University"
 license: BSD-3-Clause
-repository-code: "https://github.com/byu-magicc/Minimum-Snap-Trajectories"
+repository-code: "https://github.com/byu-magicc/coast"
 version: 0.1.0
 keywords:
   - trajectory optimization
