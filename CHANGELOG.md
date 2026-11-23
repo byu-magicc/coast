@@ -76,6 +76,9 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Changed
 
+- CI skips changes that touch only documentation (Markdown, `docs/`, `paper/`, `CITATION.cff`,
+  license files, issue/PR templates); any other file still runs it in full. The Wheels
+  workflow now also runs when `licenses/` changes, since those files ship in the wheels.
 - Copyright holder in `LICENSE` is Brigham Young University.
 - `plot_demo.py` checks whether plot windows can open and, if not (Python without Tcl/Tk,
   no display), explains why and saves the plots as PNGs instead of failing or silently
