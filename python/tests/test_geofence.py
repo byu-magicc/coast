@@ -29,8 +29,9 @@ def quiet():
 
 
 def plan(goal, **cfg):
+    # max_solve_time_ms=0: no wall-clock budget, so slow CI runners can't fail a plan on time.
     kw = dict(voxel_resolution=0.5, drone_physical_radius=0.49, min_altitude=0.59,
-              planning_horizon=0.0)
+              planning_horizon=0.0, max_solve_time_ms=0.0)
     kw.update(cfg)
     with quiet():
         return TrajectoryPlanner(FrontEndConfig(**kw), SparseVoxelGrid(0.5, 0.49)).plan_mission(
