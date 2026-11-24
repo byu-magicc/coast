@@ -76,7 +76,7 @@ with Python 3.9 and 3.13. To use it from another project, install into that proj
 environment straight from GitHub:
 
 ```bash
-pip install "coast-planner @ git+https://github.com/byu-magicc/Minimum-Snap-Trajectories.git"
+pip install "coast-planner @ git+https://github.com/byu-magicc/coast.git"
 ```
 
 Nothing needs to be installed system-wide besides a C/C++ compiler and git. pip fetches
@@ -210,7 +210,7 @@ python/examples/        benchmark.py (timing), plot_demo.py (visualization)
 
 The original pure-Python prototype that the C++ engine was ported from, and the `data/`
 benchmark figures, are no longer on `main`. They are preserved on the
-[`legacy/python-prototype`](https://github.com/byu-magicc/Minimum-Snap-Trajectories/tree/legacy/python-prototype)
+[`legacy/python-prototype`](https://github.com/byu-magicc/coast/tree/legacy/python-prototype)
 branch and the `prototype-archive` tag (`git checkout prototype-archive`). Several C++ files
 are direct ports and say so in their header comments; the prototype is **not** kept in sync
 with the C++ engine.

@@ -48,10 +48,10 @@ test = ["pytest", "matplotlib>=3.5"]
 coast-planner-demo = "coast_planner._demo:main"
 
 [project.urls]
-Homepage = "https://github.com/byu-magicc/Minimum-Snap-Trajectories"
-Documentation = "https://github.com/byu-magicc/Minimum-Snap-Trajectories#readme"
-Issues = "https://github.com/byu-magicc/Minimum-Snap-Trajectories/issues"
-Changelog = "https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/byu-magicc/coast"
+Documentation = "https://github.com/byu-magicc/coast#readme"
+Issues = "https://github.com/byu-magicc/coast/issues"
+Changelog = "https://github.com/byu-magicc/coast/blob/main/CHANGELOG.md"
 
 [tool.scikit-build]
 # The C++ project lives in cpp/; the pure-Python half of the package in python/coast_planner/.

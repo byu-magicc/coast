@@ -79,6 +79,12 @@ The first release, 0.1.0, will be cut from this section.
 - CI skips changes that touch only documentation (Markdown, `docs/`, `paper/`, `CITATION.cff`,
   license files, issue/PR templates); any other file still runs it in full. The Wheels
   workflow now also runs when `licenses/` changes, since those files ship in the wheels.
+- **Documentation figures and repository links:** the README opens with top-down and 3D views
+  of a demo plan and has an architecture diagram (`docs/images/architecture.svg`: required
+  inputs, voxel map, front end, min-snap QP, output, the re-plan loop, the main tunable
+  parameters and a QR code to the repository). Links, clone instructions, the `pyproject.toml`
+  project URLs, `CITATION.cff` and the PyPI trusted-publisher setup in `RELEASING.md` now use
+  the repository's new name, `byu-magicc/coast`.
 - Copyright holder in `LICENSE` is Brigham Young University.
 - `plot_demo.py` checks whether plot windows can open and, if not (Python without Tcl/Tk,
   no display), explains why and saves the plots as PNGs instead of failing or silently
@@ -124,4 +130,4 @@ The first release, 0.1.0, will be cut from this section.
 - README: the Ubuntu prerequisites now include `python3-dev`, without which `pip install`
   fails on a fresh install. (#46)
 
-[Unreleased]: https://github.com/byu-magicc/Minimum-Snap-Trajectories/commits/main
+[Unreleased]: https://github.com/byu-magicc/coast/commits/main

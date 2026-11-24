@@ -1,12 +1,12 @@
 # COAST: Corridor-Optimized Aerially-Safe Trajectories
 
-[![CI](https://github.com/byu-magicc/Minimum-Snap-Trajectories/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/byu-magicc/Minimum-Snap-Trajectories/actions/workflows/ci.yml)
+[![CI](https://github.com/byu-magicc/coast/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/byu-magicc/coast/actions/workflows/ci.yml)
 [![arXiv](https://img.shields.io/badge/arXiv-2611.22447-b31b1b)](https://arxiv.org/abs/2611.22447)
-[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](https://github.com/byu-magicc/coast/blob/main/LICENSE)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/demo-plan-2d.png" alt="Top-down view of a COAST plan: four Safe Flight Corridors around two obstacles, with the trajectory coloured by speed from start to goal" width="49%">
-  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/demo-plan-3d.png" alt="3D view of the same COAST plan, showing the corridors as boxes and the obstacles as pillars" width="49%">
+  <img src="https://raw.githubusercontent.com/byu-magicc/coast/main/docs/images/demo-plan-2d.png" alt="Top-down view of a COAST plan: four Safe Flight Corridors around two obstacles, with the trajectory coloured by speed from start to goal" width="49%">
+  <img src="https://raw.githubusercontent.com/byu-magicc/coast/main/docs/images/demo-plan-3d.png" alt="3D view of the same COAST plan, showing the corridors as boxes and the obstacles as pillars" width="49%">
 </p>
 
 COAST is a real-time trajectory planner for multirotors flying through cluttered,
@@ -32,15 +32,15 @@ give no collision guarantee, while corridor-based methods are safe but slow. COA
 - **C++17 library with Python bindings**, no ROS dependency, on Linux, macOS and Windows.
 
 Known limitations, including the exceptions to corridor containment, are listed in
-[docs/limitations.md](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/limitations.md).
+[docs/limitations.md](https://github.com/byu-magicc/coast/blob/main/docs/limitations.md).
 
 ## Architecture
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/byu-magicc/Minimum-Snap-Trajectories/main/docs/images/architecture.svg" alt="COAST architecture: inputs feed a voxel map, an A* and Safe Flight Corridor front end, then a minimum-snap QP with MINVO bounds, producing B-spline control points; the multirotor re-plans with each new scan" width="100%">
+  <img src="https://raw.githubusercontent.com/byu-magicc/coast/main/docs/images/architecture.svg" alt="COAST architecture: inputs feed a voxel map, an A* and Safe Flight Corridor front end, then a minimum-snap QP with MINVO bounds, producing B-spline control points; the multirotor re-plans with each new scan" width="100%">
 </p>
 
-Each stage is described in [docs/how-it-works.md](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/how-it-works.md).
+Each stage is described in [docs/how-it-works.md](https://github.com/byu-magicc/coast/blob/main/docs/how-it-works.md).
 
 ## Installation
 
@@ -62,8 +62,8 @@ You need Python 3.9 or newer, git, and a C++17 compiler:
 Linux / macOS:
 
 ```bash
-git clone https://github.com/byu-magicc/Minimum-Snap-Trajectories.git
-cd Minimum-Snap-Trajectories
+git clone https://github.com/byu-magicc/coast.git
+cd coast
 python3 -m venv .venv
 source .venv/bin/activate
 pip install ".[viz]"
@@ -72,8 +72,8 @@ pip install ".[viz]"
 Windows (PowerShell):
 
 ```powershell
-git clone https://github.com/byu-magicc/Minimum-Snap-Trajectories.git
-cd Minimum-Snap-Trajectories
+git clone https://github.com/byu-magicc/coast.git
+cd coast
 py -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install ".[viz]"
@@ -98,11 +98,11 @@ instead. The planner itself works either way.
 `coast-planner-demo --env hard` plans through a harder environment: three staggered rows of
 pillars and then a window in a wall. You can also design your own environments as JSON files
 to test the planner on; see
-[Test environments](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/python.md#test-environments-and-the-demo).
+[Test environments](https://github.com/byu-magicc/coast/blob/main/docs/python.md#test-environments-and-the-demo).
 
 To modify the code, install in editable mode instead: `pip install -e ".[viz,test]"`. Python
 edits then apply immediately; re-run it after changing C++. To use the C++ library directly
-with CMake, see [docs/building.md](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/building.md).
+with CMake, see [docs/building.md](https://github.com/byu-magicc/coast/blob/main/docs/building.md).
 
 ## Example
 
@@ -130,8 +130,8 @@ plt.show()
 ```
 
 More examples, including the closed-form unconstrained solver, are in
-[`python/examples/`](https://github.com/byu-magicc/Minimum-Snap-Trajectories/tree/main/python/examples)
-and the [Python guide](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/python.md).
+[`python/examples/`](https://github.com/byu-magicc/coast/tree/main/python/examples)
+and the [Python guide](https://github.com/byu-magicc/coast/blob/main/docs/python.md).
 
 ## Use with ROS 2 and ROSflight
 
@@ -145,12 +145,12 @@ trajectory tracking), see the ROSflight integration used in the COAST paper's ex
 
 ## Documentation
 
-- [How COAST works](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/how-it-works.md): pipeline, corridor containment, coordinate conventions
-- [Python guide](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/python.md) and [C++ guide](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/cpp.md): usage, API reference, integrating into your own system
-- [Configuration](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/configuration.md): every `FrontEndConfig` parameter
-- [Building and development](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/building.md): CMake options, tests, benchmarks
-- [Gotchas and known limitations](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/docs/limitations.md)
-- [Changelog](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/CHANGELOG.md)
+- [How COAST works](https://github.com/byu-magicc/coast/blob/main/docs/how-it-works.md): pipeline, corridor containment, coordinate conventions
+- [Python guide](https://github.com/byu-magicc/coast/blob/main/docs/python.md) and [C++ guide](https://github.com/byu-magicc/coast/blob/main/docs/cpp.md): usage, API reference, integrating into your own system
+- [Configuration](https://github.com/byu-magicc/coast/blob/main/docs/configuration.md): every `FrontEndConfig` parameter
+- [Building and development](https://github.com/byu-magicc/coast/blob/main/docs/building.md): CMake options, tests, benchmarks
+- [Gotchas and known limitations](https://github.com/byu-magicc/coast/blob/main/docs/limitations.md)
+- [Changelog](https://github.com/byu-magicc/coast/blob/main/CHANGELOG.md)
 
 ## Running the tests
 
@@ -162,7 +162,7 @@ cmake -S cpp -B cpp/build && cmake --build cpp/build --config Release && ctest -
 ## Contributing and support
 
 Questions, bug reports and pull requests are welcome through
-[GitHub issues](https://github.com/byu-magicc/Minimum-Snap-Trajectories/issues).
+[GitHub issues](https://github.com/byu-magicc/coast/issues).
 
 ## Citing
 
@@ -184,12 +184,12 @@ If you use COAST in research, please cite the paper
 ```
 
 Citation metadata for the software itself, with authors and ORCIDs, is in
-[`CITATION.cff`](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/CITATION.cff);
+[`CITATION.cff`](https://github.com/byu-magicc/coast/blob/main/CITATION.cff);
 GitHub's **Cite this repository** button generates BibTeX and APA from it.
 
 ## License
 
-BSD 3-Clause; see [`LICENSE`](https://github.com/byu-magicc/Minimum-Snap-Trajectories/blob/main/LICENSE).
+BSD 3-Clause; see [`LICENSE`](https://github.com/byu-magicc/coast/blob/main/LICENSE).
 Copyright (c) 2026, Brigham Young University. The Python wheels also contain compiled
 third-party code (OSQP, Eigen, pybind11 and others); their licenses are listed in
-[`licenses/`](https://github.com/byu-magicc/Minimum-Snap-Trajectories/tree/main/licenses).
+[`licenses/`](https://github.com/byu-magicc/coast/tree/main/licenses).
