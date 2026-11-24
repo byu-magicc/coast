@@ -8,6 +8,6 @@ not tolerated in any project space (issues, pull requests, discussions and revie
 
 ## Reporting
 
-To report a concern, contact the maintainers privately at **TODO-maintainer-email**. Reports
+To report a concern, contact the maintainers privately at {apd915, brady.moon, beard}@byu.edu. Reports
 are handled confidentially. Maintainers will review every report and respond with the action
 they take, following the enforcement guidelines of the Contributor Covenant.
