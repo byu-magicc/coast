@@ -8,6 +8,7 @@ not tolerated in any project space (issues, pull requests, discussions and revie
 
 ## Reporting
 
-To report a concern, contact the maintainers privately at {apd915, brady.moon, beard}@byu.edu. Reports
-are handled confidentially. Maintainers will review every report and respond with the action
+To report a concern, contact the maintainers privately at
+[beard@byu.edu](mailto:beard@byu.edu) or [brady.moon@byu.edu](mailto:brady.moon@byu.edu).
+Reports are handled confidentially. Maintainers will review every report and respond with the action
 they take, following the enforcement guidelines of the Contributor Covenant.

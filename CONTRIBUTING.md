@@ -15,8 +15,8 @@ fixes and code contributions are all welcome.
   reporting on this repository (*Security* tab → *Report a vulnerability*).
 
 The project is maintained by the [BYU MAGICC Lab](https://github.com/byu-magicc). Maintainers
-aim to respond to new issues and pull requests within two weeks. This is a research project,
-so support is best-effort.
+aim to respond to new issues and pull requests within two weeks, and at most within a month.
+This is a research project, so support is best-effort.
 
 ## Development setup
 
@@ -50,8 +50,12 @@ Python edits under `python/coast_planner/` take effect immediately; after changi
 3. Add or update tests:
    - C++: GoogleTest, one file per module under test, in `cpp/tests/test_*.cpp`
      (add new files to `bspline_tests` in `cpp/CMakeLists.txt`).
-   - Python bindings: `python/tests/test_bindings.py`.
-4. Update the README when behaviour, configuration defaults or the public API change.
+   - Python: pytest, in `python/tests/test_*.py` (bindings in `test_bindings.py`; add a
+     new file for a new module or feature).
+4. Update the documentation when behaviour, configuration defaults or the public API change:
+   the guides in [`docs/`](docs/) (defaults are listed in
+   [`docs/configuration.md`](docs/configuration.md)), and the README if installation or the
+   example changes. Add a line to [`CHANGELOG.md`](CHANGELOG.md) under *Unreleased*.
 5. Make sure CI passes. It builds and tests the C++ engine and the Python package on Linux,
    macOS and Windows.
 6. Describe *why* the change is needed in the pull request, and link the issue it addresses

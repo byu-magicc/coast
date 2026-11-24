@@ -9,5 +9,5 @@
 ## Checklist
 
 - [ ] Tests added or updated (`cpp/tests/` or `python/tests/`)
-- [ ] README updated if behaviour, defaults or the public API changed
+- [ ] Docs (`docs/`, README) and `CHANGELOG.md` updated if behaviour, defaults or the public API changed
 - [ ] Stress sweep run if horizon, corridor count or time allocation changed
