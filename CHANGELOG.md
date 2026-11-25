@@ -141,6 +141,10 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Fixed
 
+- `coast-planner-demo` opens plot windows from a Python 3.13.0 virtual environment on Windows,
+  where Tcl can't find its library ("Can't find a usable init.tcl"; fixed upstream in 3.13.1):
+  it points Tcl at the base installation and retries. (#48; restored after #49 overwrote it,
+  now with tests)
 - The `map_bounds` geofence planes were applied in the optimiser's start-centred frame, so the
   geofence was centred on wherever the vehicle started rather than on the world origin
   (`map_bounds.z = 12` at a 3 m start altitude gave a 9 m ceiling, not 6 m). (#57)
