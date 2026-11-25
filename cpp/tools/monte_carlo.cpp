@@ -196,7 +196,7 @@ FrontEndConfig base_config(double v_max, bool collinear, double margin = g_margi
   // -1 means "leave the FrontEndConfig default alone". An explicit 0.0 default here silently
   // overrode that default and made a whole density sweep run with the repair OFF.
   if (repair_width >= 0.0) { c.sfc_min_usable_width = repair_width; }
-  c.min_altitude = 0.59;  c.max_altitude = 6.0;
+  c.min_altitude = 0.1;  c.max_altitude = 6.0;   // vehicle surface limits; radius added internally
   c.map_bounds = Eigen::Vector3d(kFieldX * 1.5, kFieldY * 2.0, 15.0);
   // COMMAND-LINE OVERRIDES GO LAST.
   //

@@ -314,7 +314,7 @@ V_MAX, A_MAX = 3.0, 2.0
 
 def planner_config(**overrides):
     kw = dict(voxel_resolution=VOXEL, drone_physical_radius=DRONE_R,
-              map_bounds=[100.0, 100.0, 15.0], min_altitude=DRONE_R + 0.1,
+              map_bounds=[100.0, 100.0, 15.0], min_altitude=0.1,
               planning_horizon=12.0, v_max=V_MAX, a_max=A_MAX)
     kw.update(overrides)
     return FrontEndConfig(**kw)

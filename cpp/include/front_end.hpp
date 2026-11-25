@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <stdexcept>
 #include <memory>
 #include "voxel_grid.hpp"
 #include "ring_buffer.hpp"
@@ -388,6 +389,46 @@ struct FrontEndConfig {
     // allocator is left alone -- it already reasons in norms along a 1-D speed profile, so only
     // the QP box is inconsistent with it.
     bool enforce_norm_limits = false;
+
+    // ---- Limits on the vehicle CENTRE ----------------------------------------------------------
+    // min_altitude, max_altitude and map_bounds describe where the VEHICLE may go: its surface
+    // keeps clear of them, so the point whose position is planned (the centre, or wherever
+    // position is measured from) stays drone_physical_radius inside each one. These turn the
+    // user's limits into the limits on that point; A* and the optimiser both use them, so the
+    // two stages always agree.
+
+    /// Highest altitude for the centre (m, positive-up): max_altitude - radius. Only when
+    /// has_ceiling(); map_bounds.z supplies the ceiling if max_altitude is off.
+    bool has_ceiling() const { return max_altitude > 0.0 || map_bounds.z() > 0.0; }
+    double centre_ceiling() const {
+        const double top = max_altitude > 0.0 ? max_altitude : map_bounds.z() / 2.0;
+        return top - drone_physical_radius;
+    }
+    /// Lowest altitude for the centre (m, positive-up): min_altitude + radius.
+    double centre_floor() const { return min_altitude + drone_physical_radius; }
+    /// Half-extent of the map_bounds geofence for the centre on `axis` (0 = x, 1 = y, 2 = z):
+    /// map_bounds(axis) / 2 - radius. Only meaningful when map_bounds(axis) > 0.
+    double centre_half_extent(int axis) const {
+        return map_bounds(axis) / 2.0 - drone_physical_radius;
+    }
+
+    /// Throws std::invalid_argument if the limits leave the centre no room: a ceiling at or
+    /// below the floor once the radius is accounted for, or a geofence axis narrower than
+    /// the vehicle.
+    void validate_limits() const {
+        if (max_altitude > 0.0 && centre_ceiling() <= centre_floor())
+            throw std::invalid_argument(
+                "FrontEndConfig: max_altitude (" + std::to_string(max_altitude) +
+                " m) leaves no room above min_altitude (" + std::to_string(min_altitude) +
+                " m) for a vehicle of radius " + std::to_string(drone_physical_radius) +
+                " m: the vehicle's centre must stay one radius inside each limit.");
+        for (int axis = 0; axis < 3; ++axis)
+            if (map_bounds(axis) > 0.0 && centre_half_extent(axis) <= 0.0)
+                throw std::invalid_argument(
+                    "FrontEndConfig: map_bounds[" + std::to_string(axis) + "] = " +
+                    std::to_string(map_bounds(axis)) + " m is no wider than the vehicle (radius " +
+                    std::to_string(drone_physical_radius) + " m).");
+    }
 };
 
 /**

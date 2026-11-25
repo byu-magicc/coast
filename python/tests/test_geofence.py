@@ -30,7 +30,7 @@ def quiet():
 
 def plan(goal, start=(0.0, 0.0, -3.0), obstacles=(), **cfg):
     # max_solve_time_ms=0: no wall-clock budget, so slow CI runners can't fail a plan on time.
-    kw = dict(voxel_resolution=0.5, drone_physical_radius=0.49, min_altitude=0.59,
+    kw = dict(voxel_resolution=0.5, drone_physical_radius=0.49, min_altitude=0.1,
               planning_horizon=0.0, max_solve_time_ms=0.0)
     kw.update(cfg)
     grid = SparseVoxelGrid(0.5, 0.49)
@@ -62,7 +62,7 @@ def test_explicit_geofence_is_respected():
     # 100 m in x and y => |x|, |y| <= 50 m; z unset => no vertical limit from map_bounds.
     r = plan([80.0, 0.0, -3.0], map_bounds=[100.0, 100.0, 0.0])
     if r.success:
-        assert np.max(np.abs(samples(r)[:, :2])) <= 50.0 + 1e-2
+        assert np.max(np.abs(samples(r)[:, :2])) <= 50.0 - RADIUS + 1e-2
         assert not r.reached_goal  # the goal is outside the geofence
 
 
@@ -78,12 +78,34 @@ def test_geofence_inside_reach_still_plans():
 WALL = [ObstacleBox(min=[10.0, -30.0, -4.5], max=[11.0, 30.0, 0.0])]
 
 
+RADIUS = 0.49
+
+
 @pytest.mark.parametrize("ceiling", [dict(max_altitude=6.0), dict(map_bounds=[0.0, 0.0, 12.0])])
-@pytest.mark.parametrize("goal_alt", [3.0, 5.8])
+@pytest.mark.parametrize("goal_alt", [3.0, 5.4])
 def test_trajectory_stays_below_the_ceiling(ceiling, goal_alt):
+    # The ceiling bounds the TOP of the vehicle: its centre stays one radius below it.
     r = plan([20.0, 0.0, -goal_alt], obstacles=WALL, **ceiling)
     assert r.success and r.reached_goal
-    assert -samples(r)[:, 2].min() <= 6.0 + 1e-3
+    assert -samples(r)[:, 2].min() <= 6.0 - RADIUS + 1e-3
+
+
+def test_floor_keeps_the_vehicle_one_radius_above_min_altitude():
+    # A low goal pulls the trajectory down; the centre must stay at min_altitude + radius.
+    r = plan([20.0, 0.0, -1.2], min_altitude=0.5)
+    assert r.success and r.reached_goal
+    assert -samples(r)[:, 2].max() >= 0.5 + RADIUS - 1e-3
+
+
+def test_geofence_keeps_the_vehicle_one_radius_inside():
+    r = plan([30.0, 0.0, -3.0], start=(10.0, 0.0, -3.0), map_bounds=[40.0, 0.0, 0.0])
+    if r.success:
+        assert samples(r)[:, 0].max() <= 20.0 - RADIUS + 1e-2
+
+
+def test_limits_that_leave_no_room_are_rejected():
+    with pytest.raises(ValueError, match="no room"):
+        plan([10.0, 0.0, -1.0], min_altitude=0.5, max_altitude=1.2)  # 0.99 .. 0.71: empty
 
 
 def test_vehicle_above_the_ceiling_can_plan_back_down():
@@ -95,7 +117,7 @@ def test_geofence_is_centred_on_the_world_origin_not_the_start():
     # +/-50 m about the ORIGIN. Centred on the start (x = 40) it would have allowed x up to 90.
     r = plan([70.0, 0.0, -3.0], start=(40.0, 0.0, -3.0), map_bounds=[100.0, 100.0, 0.0])
     if r.success:
-        assert samples(r)[:, 0].max() <= 50.0 + 1e-2
+        assert samples(r)[:, 0].max() <= 50.0 - RADIUS + 1e-2
 
 
 def _demo(tmp_path, env):

@@ -93,6 +93,8 @@
 <text x="310.0" y="606" text-anchor="end" font-size="12.5" fill="#495057">0.5 m</text>
 <text x="40.0" y="628" font-size="12.5" fill="#343A40" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">min_altitude</text>
 <text x="310.0" y="628" text-anchor="end" font-size="12.5" fill="#495057">0.3 m</text>
+<text x="40.0" y="650" font-size="12.5" fill="#343A40" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">max_altitude</text>
+<text x="310.0" y="650" text-anchor="end" font-size="12.5" fill="#495057">off</text>
 <line x1="330.0" y1="568" x2="330.0" y2="654" stroke="#DEE2E6" stroke-width="1"/>
 <text x="350.0" y="582" font-size="13.5" font-weight="700" fill="#343A40">Corridors</text>
 <text x="350.0" y="606" font-size="12.5" fill="#343A40" font-family="SFMono-Regular, Consolas, 'Liberation Mono', monospace">sfc_width</text>

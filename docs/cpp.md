@@ -24,8 +24,8 @@ grid->update_from_scan(sensor_origin, hits);
 FrontEndConfig cfg;
 cfg.voxel_resolution      = voxel_resolution;
 cfg.drone_physical_radius = drone_radius;
-cfg.min_altitude          = drone_radius + 0.1;   // ground clearance, metres (positive-up)
-cfg.max_altitude          = 6.0;                  // optional ceiling, metres (positive-up)
+cfg.min_altitude          = 0.1;   // ground clearance below the vehicle, metres (positive-up)
+cfg.max_altitude          = 6.0;   // optional ceiling for the top of the vehicle, metres
 cfg.planning_horizon      = 10.0;
 
 // 4. Plan. Construct fresh each cycle so it picks up the latest map.

@@ -98,28 +98,32 @@ def check_endpoints(scenario):
 
     A start or goal inside an obstacle's inflation, or a goal the configured limits put out of
     reach: outside an explicit ``map_bounds`` geofence, above ``max_altitude`` or below
-    ``min_altitude``. (The start may be outside the limits: the planner routes back in.)
+    ``min_altitude``. The limits bound the vehicle's surface, so its centre (the planned
+    position) must stay one drone radius inside each. (The start may be outside the limits:
+    the planner routes back in.)
     """
     problems = []
+    r = scenario.drone_radius
     for label, p in (("start", scenario.start), ("goal", scenario.goal)):
         clearance = box_clearance(p, scenario.obstacles) if scenario.obstacles else np.inf
-        if clearance < scenario.drone_radius:
+        if clearance < r:
             problems.append(f"the {label} {list(p)} is within the drone radius "
-                            f"({scenario.drone_radius} m) of an obstacle")
+                            f"({r} m) of an obstacle")
     cfg = scenario.front_end_config()
     goal = np.asarray(scenario.goal, dtype=float)
     for axis, name in enumerate(("x (North)", "y (East)", "z (Down)")):
         extent = float(cfg.map_bounds[axis])
-        if extent > 0 and abs(goal[axis]) > extent / 2:
+        if extent > 0 and abs(goal[axis]) > extent / 2 - r:
             problems.append(f"the goal's {name} = {goal[axis]:g} m is outside the map_bounds "
-                            f"geofence (+/-{extent / 2:g} m about the origin)")
+                            f"geofence (+/-{extent / 2:g} m about the origin, less the "
+                            f"{r:g} m drone radius)")
     altitude = -goal[2]
-    if cfg.max_altitude > 0 and altitude > cfg.max_altitude:
+    if cfg.max_altitude > 0 and altitude > cfg.max_altitude - r:
         problems.append(f"the goal's altitude ({altitude:g} m) is above max_altitude "
-                        f"({cfg.max_altitude:g} m)")
-    if cfg.min_altitude > 0 and altitude < cfg.min_altitude:
+                        f"({cfg.max_altitude:g} m) less the {r:g} m drone radius")
+    if altitude < cfg.min_altitude + r:
         problems.append(f"the goal's altitude ({altitude:g} m) is below min_altitude "
-                        f"({cfg.min_altitude:g} m)")
+                        f"({cfg.min_altitude:g} m) plus the {r:g} m drone radius")
     return problems
 
 

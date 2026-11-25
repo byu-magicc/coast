@@ -16,6 +16,7 @@ FrontEndSFC::FrontEndSFC(const FrontEndConfig &config,
     : config_(config), discrete_grid_(std::move(grid)),
       sfc_manager_(discrete_grid_, 0.0, 0.0, config.voxel_resolution),
       static_sfc_manager_(config.sfc_height, config.sfc_width) {
+  config_.validate_limits();
   // Reconfigure the asymmetric SFC manager with the correct parameters
   double max_cp_drift =
       (config_.sfc_width / 2.0) - config_.drone_physical_radius;
@@ -78,17 +79,17 @@ FrontEndSFC::FrontEndSFC(const FrontEndConfig &config,
   // NED: altitude a is at z = -a, so the HIGHEST altitude is the MOST NEGATIVE index and is the
   // LOWER z bound. Getting this backwards silently inverts the ceiling into a floor, so keep the
   // sign reasoning here rather than at the call site.
+  //
+  // These are limits on the vehicle's CENTRE, already pulled one radius inside the user's
+  // limits (FrontEndConfig::centre_ceiling() etc.).
   const double res0 = config_.voxel_resolution;
-  if (config_.max_altitude > 0.0) {
+  if (config_.has_ceiling()) {
     has_ceiling_ = true;
-    ceiling_z_ = static_cast<int>(std::floor(-config_.max_altitude / res0));
-  } else if (config_.map_bounds.z() > 0.0) {
-    has_ceiling_ = true;
-    ceiling_z_ = static_cast<int>(-config_.map_bounds.z() / (2.0 * res0));
+    ceiling_z_ = static_cast<int>(std::ceil(-config_.centre_ceiling() / res0));  // first cell at/below
   }
   if (config_.map_bounds.z() > 0.0) {
     has_bottom_ = true;
-    bottom_z_ = static_cast<int>(config_.map_bounds.z() / (2.0 * res0)) - 1;  // last cell inside
+    bottom_z_ = static_cast<int>(std::floor(config_.centre_half_extent(2) / res0)) - 1;  // last cell inside
   }
   // Placeholder bounds until the first search sets real ones.
   const Eigen::Vector3i bounds_min = Eigen::Vector3i::Constant(-1);
@@ -178,8 +179,9 @@ FrontEndSFC::get_corridors_astar(const Eigen::Vector3d &start_pos,
     Eigen::Vector3i hi = start_idx + Eigen::Vector3i::Constant(pad);
     for (int axis = 0; axis < 2; ++axis) {   // horizontal geofence, when set
       if (config_.map_bounds(axis) > 0.0) {
-        // Cells -half .. half-1 lie inside [-L/2, +L/2]; cell `half` starts AT the boundary.
-        const int half = static_cast<int>(config_.map_bounds(axis) / (2.0 * res));
+        // Cells -half .. half-1 lie inside [-h, +h] for the centre's half-extent h (one
+        // radius inside the user's geofence); cell `half` starts at or beyond the boundary.
+        const int half = static_cast<int>(std::floor(config_.centre_half_extent(axis) / res));
         lo(axis) = std::max(lo(axis), -half);
         hi(axis) = std::min(hi(axis), half - 1);
       }
@@ -278,11 +280,11 @@ FrontEndSFC::get_corridors_astar(const Eigen::Vector3d &start_pos,
           ? config_.sensor_range / config_.voxel_resolution
           : -1.0;
 
-  // Convert min_altitude (positive-up meters) to NED voxel z-index floor.
-  // In NED, z is negative-up: min_altitude 0.5m → z_ned_max = -0.5 → z_index =
-  // floor(-0.5 / res)
+  // Convert the centre's floor (min_altitude + radius, positive-up metres) to an NED voxel
+  // z-index. In NED, z is negative-up: a 0.79 m floor -> z_ned_max = -0.79 -> z_index =
+  // floor(-0.79 / res).
   int max_z_index = static_cast<int>(
-      std::floor(-config_.min_altitude / config_.voxel_resolution));
+      std::floor(-config_.centre_floor() / config_.voxel_resolution));
 
   // max_time_ms is a loose backstop only -- config_.astar_max_nodes is the
   // real, and deterministic, limit. See the search budget comment in

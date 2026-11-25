@@ -119,7 +119,7 @@ grid = SparseVoxelGrid(resolution=0.5, inflation_radius=radius)
 pillar = ObstacleBox(min=[4.5, -0.5, -7.0], max=[5.5, 0.5, 0.0])
 grid.update_from_obstacles([pillar])                 # or grid.update_from_scan(origin, lidar_points)
 
-cfg = FrontEndConfig(voxel_resolution=0.5, drone_physical_radius=radius, min_altitude=radius + 0.1)
+cfg = FrontEndConfig(voxel_resolution=0.5, drone_physical_radius=radius, min_altitude=0.1)
 planner = TrajectoryPlanner(cfg, grid, v_max=3.0, a_max=2.0)
 result = planner.plan_mission(start_pos=[0, 0, -3], end_pos=[10, 0, -3])
 
@@ -128,6 +128,24 @@ traj = result.sampler()                              # position / velocity / acc
 plot_plan(result, obstacles=[pillar], goal=[10, 0, -3])
 plt.show()
 ```
+
+### Limits and operating envelope
+
+- **Limits describe where the vehicle may go, not its centre.** `min_altitude`,
+  `max_altitude` and the optional `map_bounds` geofence are kept clear by the whole vehicle: the
+  planned position (the vehicle's centre, or wherever you measure position from) stays
+  `drone_physical_radius` inside each one. COAST adds or subtracts the radius itself, so set
+  the limits where the vehicle's surface may go. For example, with a 0.49 m radius,
+  `max_altitude=6.0` keeps the centre at or below 5.51 m, and `min_altitude=0.1` keeps it at or
+  above 0.59 m. All three are set on `FrontEndConfig`; altitudes are meters above ground
+  (positive-up).
+- **Start planning once the vehicle is airborne.** COAST plans flight through the air. Take
+  off and land with a simple vertical move, and hand over to COAST in between. A start resting
+  on the ground (altitude 0) is outside the region it plans in. The
+  [ROSflight integration](#use-with-ros-2-and-rosflight) does this: it flies straight up to the
+  first waypoint's altitude, activates COAST for the mission, and descends straight down after
+  the last waypoint. Vehicles with no ground to take off from, such as underwater vehicles,
+  don't need this: set `min_altitude` below the operating region (negative values are allowed).
 
 More examples, including the closed-form unconstrained solver, are in
 [`python/examples/`](https://github.com/byu-magicc/coast/tree/main/python/examples)

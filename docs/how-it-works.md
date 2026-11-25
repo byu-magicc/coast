@@ -51,7 +51,8 @@ every curve segment is contained — in continuous time, with no mixed-integer a
 - **No fixed map size.** The planner works in world coordinates with no built-in map extent:
   each search is bounded by a box around the start, sized from the planning horizon (or, with
   no horizon, the distance to the goal). Altitude limits come from `min_altitude` and
-  `max_altitude`, which bound both the A\* search and the trajectory itself. `map_bounds` is an optional geofence: a box of the given full extent centred
+  `max_altitude`, which bound both the A\* search and the trajectory itself. Like `map_bounds`,
+  they bound the vehicle's surface: its centre is kept one `drone_physical_radius` inside each. `map_bounds` is an optional geofence: a box of the given full extent centred
   on the world origin, so an axis set to `L` confines planning to `±L/2` on it; unset axes
   (`<= 0`, the default) have no limit.
 - **`min_altitude` is positive-up** (meters above ground) and converted internally. It is

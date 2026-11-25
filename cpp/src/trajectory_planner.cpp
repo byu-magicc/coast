@@ -34,21 +34,23 @@ struct BoundRow {
 
 static std::vector<BoundRow> bound_rows(const FrontEndConfig& cfg,
                                         const Eigen::Vector3d& frame_origin) {
+    // All limits are on the vehicle's CENTRE: one radius inside what the user set
+    // (FrontEndConfig::centre_ceiling() etc.), so the vehicle's surface keeps clear of them.
     std::vector<BoundRow> rows;
     const double start_alt = -frame_origin.z();
-    if (cfg.max_altitude > 0.0) {
+    if (cfg.has_ceiling()) {
         const double ceiling = cfg.geofence_contains_vehicle
-            ? std::max(cfg.max_altitude, start_alt) : cfg.max_altitude;
+            ? std::max(cfg.centre_ceiling(), start_alt) : cfg.centre_ceiling();
         rows.push_back({Eigen::RowVector3d(0.0, 0.0, -1.0), ceiling, false});
     }
-    if (cfg.min_altitude > 0.0) {
+    {
         const double floor_alt = cfg.geofence_contains_vehicle
-            ? std::min(cfg.min_altitude, start_alt) : cfg.min_altitude;
+            ? std::min(cfg.centre_floor(), start_alt) : cfg.centre_floor();
         rows.push_back({Eigen::RowVector3d(0.0, 0.0, 1.0), -floor_alt, false});
     }
     for (int axis = 0; axis < 3; ++axis) {
         if (cfg.map_bounds(axis) <= 0.0) continue;
-        double half = cfg.map_bounds(axis) / 2.0;
+        double half = cfg.centre_half_extent(axis);
         if (cfg.geofence_contains_vehicle) half = std::max(half, std::abs(frame_origin(axis)));
         Eigen::RowVector3d e = Eigen::RowVector3d::Zero();
         e(axis) = 1.0;
@@ -113,6 +115,7 @@ TrajectoryPlanner::TrajectoryPlanner(
     std::shared_ptr<mapping::SparseVoxelGrid> grid,
     double v_max, double a_max)
     : config_(config), v_max_(v_max), a_max_(a_max) {
+    config_.validate_limits();
     // Keep the front-end allocator's kinematic limits in sync with the limits the
     // MINVO constraints are actually built against, otherwise the allocator sizes
     // the trajectory duration for one speed and the QP enforces another.

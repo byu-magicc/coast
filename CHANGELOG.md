@@ -96,6 +96,14 @@ The first release, 0.1.0, will be cut from this section.
   them, and the smoothed trajectory followed (200 random fields with a 6 m ceiling: 39 of 168
   trajectories went above it, worst 9.47 m; now none, with the same success rate). They are now
   planes on the control points too, added only where a corridor crosses them. (#57)
+- **`min_altitude`, `max_altitude` and `map_bounds` now bound the vehicle, not its centre.**
+  The planned position stays `drone_physical_radius` inside each limit; the radius is applied
+  internally, so set the limits where the vehicle's surface may go. To keep an existing
+  configuration's behaviour, subtract the radius from `min_altitude` (e.g.
+  `radius + 0.1` becomes `0.1`) and add it to `max_altitude`. Limits that leave no room raise
+  `ValueError` / `std::invalid_argument`. (#57)
+- README: limits and operating envelope (the radius rule; plan once airborne, with vertical
+  takeoff and landing handled outside the planner, as the ROSflight integration does). (#57)
 - `coast-planner-demo` reports a goal outside the `map_bounds` geofence or the altitude limits
   as an invalid environment, and exits with 2 for invalid environment files and arguments
   (it exited with 1, the code for a likely planner bug). (#53)

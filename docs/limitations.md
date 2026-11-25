@@ -56,6 +56,11 @@ Honest list of rough edges, current as of this writing:
 - **No prebuilt wheels yet.** `pip install` compiles from source (about a minute, and it needs a
   compiler and network). The build is already self-contained, so publishing to PyPI is now
   just a matter of building wheels with cibuildwheel.
+- **Planning starts once the vehicle is airborne.** A start resting on the ground (altitude 0)
+  is outside the region COAST plans in, by design: take off and land with a simple vertical
+  move and hand over to COAST in between, as the ROSflight integration does (straight up to
+  the first waypoint, straight down after the last). Not applicable to vehicles without a
+  ground, such as underwater vehicles; set `min_altitude` below their operating region.
 - **Every plan ends at a full stop.** The terminal boundary condition pins zero velocity and
   acceleration. With a goal beyond `planning_horizon` that stop lands at the horizon rather
   than the goal, which costs average speed.
