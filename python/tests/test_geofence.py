@@ -12,7 +12,7 @@ import contextlib
 import numpy as np
 import pytest
 
-from coast_planner import FrontEndConfig, SparseVoxelGrid, TrajectoryPlanner
+from coast_planner import FrontEndConfig, ObstacleBox, SparseVoxelGrid, TrajectoryPlanner
 
 
 @contextlib.contextmanager
@@ -28,14 +28,16 @@ def quiet():
         os.close(saved)
 
 
-def plan(goal, **cfg):
+def plan(goal, start=(0.0, 0.0, -3.0), obstacles=(), **cfg):
     # max_solve_time_ms=0: no wall-clock budget, so slow CI runners can't fail a plan on time.
     kw = dict(voxel_resolution=0.5, drone_physical_radius=0.49, min_altitude=0.59,
               planning_horizon=0.0, max_solve_time_ms=0.0)
     kw.update(cfg)
+    grid = SparseVoxelGrid(0.5, 0.49)
+    if obstacles:
+        grid.update_from_obstacles(list(obstacles))
     with quiet():
-        return TrajectoryPlanner(FrontEndConfig(**kw), SparseVoxelGrid(0.5, 0.49)).plan_mission(
-            [0.0, 0.0, -3.0], goal)
+        return TrajectoryPlanner(FrontEndConfig(**kw), grid).plan_mission(list(start), goal)
 
 
 def samples(result, n=2000):
@@ -67,6 +69,33 @@ def test_explicit_geofence_is_respected():
 def test_geofence_inside_reach_still_plans():
     r = plan([30.0, 5.0, -3.0], map_bounds=[100.0, 100.0, 0.0])
     assert r.success and r.reached_goal
+
+
+# A wall across the route, 4.5 m tall: the vehicle has to climb over it, right up to a 6 m
+# ceiling. A* alone kept its path under the ceiling, but the corridors around that path extend
+# above it and the smoothed trajectory peaked at ~8.9 m; across 200 random pillar fields, 39 of
+# 168 plans went above a 6 m max_altitude (worst 9.47 m).
+WALL = [ObstacleBox(min=[10.0, -30.0, -4.5], max=[11.0, 30.0, 0.0])]
+
+
+@pytest.mark.parametrize("ceiling", [dict(max_altitude=6.0), dict(map_bounds=[0.0, 0.0, 12.0])])
+@pytest.mark.parametrize("goal_alt", [3.0, 5.8])
+def test_trajectory_stays_below_the_ceiling(ceiling, goal_alt):
+    r = plan([20.0, 0.0, -goal_alt], obstacles=WALL, **ceiling)
+    assert r.success and r.reached_goal
+    assert -samples(r)[:, 2].min() <= 6.0 + 1e-3
+
+
+def test_vehicle_above_the_ceiling_can_plan_back_down():
+    r = plan([15.0, 0.0, -3.0], start=(0.0, 0.0, -7.4), max_altitude=6.0)
+    assert r.success and r.reached_goal
+
+
+def test_geofence_is_centred_on_the_world_origin_not_the_start():
+    # +/-50 m about the ORIGIN. Centred on the start (x = 40) it would have allowed x up to 90.
+    r = plan([70.0, 0.0, -3.0], start=(40.0, 0.0, -3.0), map_bounds=[100.0, 100.0, 0.0])
+    if r.success:
+        assert samples(r)[:, 0].max() <= 50.0 + 1e-2
 
 
 def _demo(tmp_path, env):

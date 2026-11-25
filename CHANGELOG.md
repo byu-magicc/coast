@@ -91,6 +91,11 @@ The first release, 0.1.0, will be cut from this section.
   planning horizon or, with no horizon, the start-to-goal distance (it was a fixed 60 m).
   Altitude limits come from `min_altitude` and `max_altitude` only: **there is no implicit
   7.5 m ceiling any more**, so set `max_altitude` if the vehicle must stay below a height. (#53)
+- **Altitude limits and the geofence now bound the trajectory, not just the search.**
+  `max_altitude` / `min_altitude` only limited A*'s path; the corridors around it extend past
+  them, and the smoothed trajectory followed (200 random fields with a 6 m ceiling: 39 of 168
+  trajectories went above it, worst 9.47 m; now none, with the same success rate). They are now
+  planes on the control points too, added only where a corridor crosses them. (#57)
 - `coast-planner-demo` reports a goal outside the `map_bounds` geofence or the altitude limits
   as an invalid environment, and exits with 2 for invalid environment files and arguments
   (it exited with 1, the code for a likely planner bug). (#53)
@@ -126,6 +131,11 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Fixed
 
+- The `map_bounds` geofence planes were applied in the optimiser's start-centred frame, so the
+  geofence was centred on wherever the vehicle started rather than on the world origin
+  (`map_bounds.z = 12` at a 3 m start altitude gave a 9 m ceiling, not 6 m). (#57)
+- Natural splines relaxed "the last 6 rows" of each end pool as the map runway; with fewer
+  geofence rows that relaxed corridor walls instead. It now relaxes exactly the geofence rows. (#57)
 - The default CMake build no longer fails on machines without roscopter: `monte_carlo`, which
   needs a roscopter header, is skipped when that header is not found. (#3)
 - Windows (MSVC) build: force-include with `/FI`, `_USE_MATH_DEFINES`, `/bigobj`, `/utf-8`,

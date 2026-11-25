@@ -51,9 +51,18 @@ struct FrontEndConfig {
     double sensor_range = -1.0;   // meters, -1 = disabled (full map visibility)
     double fov_vertical_min = -7.0; // degrees, bottom edge of FOV
     double fov_vertical_max = 52.0; // degrees, top edge of FOV
-    double min_altitude = 0.3;    // meters above ground (positive-up, converted to NED internally)
+    // Altitude FLOOR, meters above ground (positive-up, converted to NED internally). <= 0 disables.
+    // Enforced by A* and, as a plane on the control points, by the optimiser (see max_altitude).
+    double min_altitude = 0.3;
     // Altitude CEILING, metres above ground (positive-up, converted to NED internally).
-    // <= 0 disables, falling back to the map_bounds-derived geofence.
+    // <= 0 disables; map_bounds.z then provides the ceiling if set, otherwise there is none.
+    //
+    // Enforced by BOTH A* and the optimiser. A* alone is not enough: it keeps the PATH under the
+    // ceiling, but the corridors built around that path extend above it, and the smoothed
+    // trajectory followed them -- across 200 random pillar fields with a 6 m ceiling, 39 of 168
+    // trajectories went above it (worst 9.47 m). The optimiser now adds the plane to every
+    // control-point pool whose corridors cross it. Either limit is relaxed to the vehicle's
+    // current altitude when it is already outside (geofence_contains_vehicle).
     //
     // The counterpart to min_altitude, and it was missing: the only thing bounding the search
     // upward was map_bounds.z/2, a map-SIZING number doing safety-critical duty by accident. At
