@@ -86,7 +86,7 @@ class Scenario:
         whether the planner can get from start to goal, and how far ahead to plan is the
         integrator's choice. Set ``planning_horizon`` in ``config`` to test with one."""
         kw = dict(drone_physical_radius=self.drone_radius,
-                  min_altitude=self.drone_radius + 0.1, planning_horizon=0.0)
+                  min_altitude=0.1, planning_horizon=0.0)
         kw.update(self.config)
         kw["voxel_resolution"] = self.voxel_resolution
         return FrontEndConfig(**kw)

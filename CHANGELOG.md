@@ -85,6 +85,28 @@ The first release, 0.1.0, will be cut from this section.
   parameters and a QR code to the repository). Links, clone instructions, the `pyproject.toml`
   project URLs, `CITATION.cff` and the PyPI trusted-publisher setup in `RELEASING.md` now use
   the repository's new name, `byu-magicc/coast`.
+- **No built-in map size.** `FrontEndConfig.map_bounds` is now an optional geofence, off by
+  default (it was a 100 x 100 x 15 m placeholder centred on the origin). When set, both A* and
+  the optimiser respect it; unset axes have no limit. The A* search box is sized from the
+  planning horizon or, with no horizon, the start-to-goal distance (it was a fixed 60 m).
+  Altitude limits come from `min_altitude` and `max_altitude` only: **there is no implicit
+  7.5 m ceiling any more**, so set `max_altitude` if the vehicle must stay below a height. (#53)
+- **Altitude limits and the geofence now bound the trajectory, not just the search.**
+  `max_altitude` / `min_altitude` only limited A*'s path; the corridors around it extend past
+  them, and the smoothed trajectory followed (200 random fields with a 6 m ceiling: 39 of 168
+  trajectories went above it, worst 9.47 m; now none, with the same success rate). They are now
+  planes on the control points too, added only where a corridor crosses them. (#57)
+- **`min_altitude`, `max_altitude` and `map_bounds` now bound the vehicle, not its centre.**
+  The planned position stays `drone_physical_radius` inside each limit; the radius is applied
+  internally, so set the limits where the vehicle's surface may go. To keep an existing
+  configuration's behaviour, subtract the radius from `min_altitude` (e.g.
+  `radius + 0.1` becomes `0.1`) and add it to `max_altitude`. Limits that leave no room raise
+  `ValueError` / `std::invalid_argument`. (#57)
+- README: limits and operating envelope (the radius rule; plan once airborne, with vertical
+  takeoff and landing handled outside the planner, as the ROSflight integration does). (#57)
+- `coast-planner-demo` reports a goal outside the `map_bounds` geofence or the altitude limits
+  as an invalid environment, and exits with 2 for invalid environment files and arguments
+  (it exited with 1, the code for a likely planner bug). (#53)
 - Copyright holder in `LICENSE` is Brigham Young University.
 - `plot_demo.py` checks whether plot windows can open and, if not (Python without Tcl/Tk,
   no display), explains why and saves the plots as PNGs instead of failing or silently
@@ -117,6 +139,11 @@ The first release, 0.1.0, will be cut from this section.
 
 ### Fixed
 
+- The `map_bounds` geofence planes were applied in the optimiser's start-centred frame, so the
+  geofence was centred on wherever the vehicle started rather than on the world origin
+  (`map_bounds.z = 12` at a 3 m start altitude gave a 9 m ceiling, not 6 m). (#57)
+- Natural splines relaxed "the last 6 rows" of each end pool as the map runway; with fewer
+  geofence rows that relaxed corridor walls instead. It now relaxes exactly the geofence rows. (#57)
 - The default CMake build no longer fails on machines without roscopter: `monte_carlo`, which
   needs a roscopter header, is skipped when that header is not found. (#3)
 - Windows (MSVC) build: force-include with `/FI`, `_USE_MATH_DEFINES`, `/bigobj`, `/utf-8`,

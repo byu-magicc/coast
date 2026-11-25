@@ -7,8 +7,9 @@ All fields of `FrontEndConfig`, with defaults:
 |---|---|---|
 | `voxel_resolution` | 0.5 | Map cell size (m). Drives cost and precision everywhere. |
 | `drone_physical_radius` | 0.5 | Circumscribed vehicle radius. Corridors are clear by this margin — **your controller's tracking error must stay below it** or the guarantee does not transfer to the vehicle. |
-| `map_bounds` | (100, 100, 15) | Full extent; usable region is ±half on each axis. |
-| `min_altitude` | 0.3 | meters above ground, positive-up. |
+| `map_bounds` | (0, 0, 0) = off | Optional geofence: full extent of a box centred on the world origin, so an axis set to `L` confines the vehicle to `±L/2` (its centre to `±(L/2 − radius)`). Axes `<= 0` have no limit. Respected by both A\* and the optimiser. |
+| `min_altitude` | 0.3 | Altitude floor for the **bottom of the vehicle**, meters above ground (positive-up): the centre stays at or above `min_altitude + drone_physical_radius`. Enforced on the trajectory, not just the search. Negative values allow planning below the ground plane (e.g. underwater vehicles). |
+| `max_altitude` | -1 = off | Altitude ceiling for the **top of the vehicle**, meters above ground (positive-up): the centre stays at or below `max_altitude − drone_physical_radius`. Enforced on the trajectory, not just the search. Set it explicitly if the vehicle must stay below a height; there is no implicit ceiling. Use this, not `map_bounds`, for a ceiling: `map_bounds.z` is symmetric about the origin. Limits that leave the centre no room raise `ValueError` (C++: `std::invalid_argument`). |
 
 ## Corridors
 | Field | Default | Notes |

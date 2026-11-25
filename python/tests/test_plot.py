@@ -32,7 +32,7 @@ def pillar_plan():
     grid = SparseVoxelGrid(0.5, DRONE_R)
     grid.update_from_obstacles(boxes)
     cfg = FrontEndConfig(voxel_resolution=0.5, drone_physical_radius=DRONE_R,
-                         min_altitude=DRONE_R + 0.1, planning_horizon=12.0)
+                         min_altitude=0.1, planning_horizon=12.0)
     res = TrajectoryPlanner(cfg, grid, 3.0, 2.0).plan_mission([0, 0, -3], [10, 0, -3])
     assert res.success
     return res, grid, boxes

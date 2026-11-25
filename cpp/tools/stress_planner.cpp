@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
   cfg.voxel_resolution = VOX;
   cfg.map_bounds = Eigen::Vector3d(100, 100, 15);
   cfg.sensor_range = 70.0;
-  cfg.min_altitude = R + 0.1;
+  cfg.min_altitude = 0.1;   // clearance below the vehicle; the radius is added internally
   cfg.max_sfc_count = k.max_sfc;
   cfg.planning_horizon = k.horizon;
 

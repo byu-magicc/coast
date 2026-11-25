@@ -491,7 +491,8 @@ fields as keyword arguments: FrontEndConfig(v_max=4.0, planning_horizon=15.0).
     // on a temporary).
     cfg.def_property("map_bounds", [](const FrontEndConfig& c) { return Vector3d(c.map_bounds); },
                      [](FrontEndConfig& c, const Vector3d& v) { c.map_bounds = v; },
-                     "Map extents (x, y, z) in metres.");
+                     "Optional geofence: full extent (x, y, z) in metres of a box centred on the world origin; "
+                     "an axis <= 0 (the default) has no limit.");
     cfg.def("__repr__", [](const FrontEndConfig& c) {
         std::ostringstream os;
         os << "FrontEndConfig(spline_type='" << c.spline_type << "', aircraft_type='" << c.aircraft_type
