@@ -48,9 +48,13 @@ every curve segment is contained — in continuous time, with no mixed-integer a
 - **`z` is negative-up.** An altitude of 5 m is `z = -5.0`. This trips up almost everyone,
   and has historically caused real bugs in this codebase (a geofence that demanded `z >= 0`
   made every solve infeasible; test fixtures written positive-up made A* refuse to plan).
-- **The world is centred on the origin.** `map_bounds` is a *full extent*, so the reachable
-  region is `±map_bounds/2` on each axis. With the default `(100, 100, 15)` that is
-  x,y ∈ [-50, +50] and z ∈ [-7.5, +7.5] — i.e. only **7.5 m of usable altitude**.
+- **No fixed map size.** The planner works in world coordinates with no built-in map extent:
+  each search is bounded by a box around the start, sized from the planning horizon (or, with
+  no horizon, the distance to the goal). Altitude limits come from `min_altitude` and
+  `max_altitude`, which bound both the A\* search and the trajectory itself. Like `map_bounds`,
+  they bound the vehicle's surface: its centre is kept one `drone_physical_radius` inside each. `map_bounds` is an optional geofence: a box of the given full extent centred
+  on the world origin, so an axis set to `L` confines planning to `±L/2` on it; unset axes
+  (`<= 0`, the default) have no limit.
 - **`min_altitude` is positive-up** (meters above ground) and converted internally. It is
   the one field that does not follow the sign convention, because it reads more naturally.
 

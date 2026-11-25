@@ -13,6 +13,65 @@ namespace trajectory_planner {
 // Specialized for the common case where B = Identity(n).
 // Result has dims (A.rows()*n, A.cols()*n).
 // ==========================================
+// Planes the trajectory must stay behind, beyond its corridors: the altitude limits and the
+// optional map_bounds geofence. Each row is a . p <= b.
+//
+// They are built in WORLD coordinates and then shifted into the optimiser's frame, which is
+// centred on the start (frame_origin) -- exactly as the corridors are. Before this, the map
+// planes were written straight into the start-centred frame, so the "geofence" was centred
+// on wherever the vehicle started: +/-50 m of x became +/-50 m around the start, and
+// map_bounds.z = 12 at a 3 m start altitude became a 9 m ceiling instead of a 6 m one.
+//
+// Altitude (NED, z = -altitude): ceiling  -z <= max_altitude,  floor  z <= -min_altitude.
+// Like A*'s bounds, a limit the vehicle is already outside is relaxed to its current altitude
+// (geofence_contains_vehicle) so it can still plan back in; the first and last three control
+// points are pinned by the boundary state and never constrained anyway.
+struct BoundRow {
+    Eigen::RowVector3d a;
+    double b;
+    bool is_map;   // map_bounds row (relaxed by the natural-spline runway); else altitude
+};
+
+static std::vector<BoundRow> bound_rows(const FrontEndConfig& cfg,
+                                        const Eigen::Vector3d& frame_origin) {
+    // All limits are on the vehicle's CENTRE: one radius inside what the user set
+    // (FrontEndConfig::centre_ceiling() etc.), so the vehicle's surface keeps clear of them.
+    std::vector<BoundRow> rows;
+    const double start_alt = -frame_origin.z();
+    if (cfg.has_ceiling()) {
+        const double ceiling = cfg.geofence_contains_vehicle
+            ? std::max(cfg.centre_ceiling(), start_alt) : cfg.centre_ceiling();
+        rows.push_back({Eigen::RowVector3d(0.0, 0.0, -1.0), ceiling, false});
+    }
+    {
+        const double floor_alt = cfg.geofence_contains_vehicle
+            ? std::min(cfg.centre_floor(), start_alt) : cfg.centre_floor();
+        rows.push_back({Eigen::RowVector3d(0.0, 0.0, 1.0), -floor_alt, false});
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+        if (cfg.map_bounds(axis) <= 0.0) continue;
+        double half = cfg.centre_half_extent(axis);
+        if (cfg.geofence_contains_vehicle) half = std::max(half, std::abs(frame_origin(axis)));
+        Eigen::RowVector3d e = Eigen::RowVector3d::Zero();
+        e(axis) = 1.0;
+        rows.push_back({e, half, true});
+        rows.push_back({-e, half, true});
+    }
+    for (auto& r : rows) r.b -= r.a.dot(frame_origin);   // world -> optimiser frame
+    return rows;
+}
+
+// A plane can only bind inside a corridor that some corner of it crosses: control points are
+// already held inside their corridors, so if every corner satisfies the plane, the row is
+// redundant. Redundant rows are not free -- they enlarge the KKT system and add dual variables
+// with nothing to pin them, the degeneracy that makes ADMM crawl -- so leave them out.
+static bool can_bind(const BoundRow& r, const sfc::SFCResult& c) {
+    const Eigen::Matrix<double, 3, 8> verts = c.getAllVertices_3D();
+    for (int v = 0; v < 8; ++v)
+        if (r.a.dot(verts.col(v)) > r.b - 1e-9) return true;
+    return false;
+}
+
 static Eigen::SparseMatrix<double> kron_with_identity(
     const Eigen::SparseMatrix<double>& A, int n)
 {
@@ -56,6 +115,7 @@ TrajectoryPlanner::TrajectoryPlanner(
     std::shared_ptr<mapping::SparseVoxelGrid> grid,
     double v_max, double a_max)
     : config_(config), v_max_(v_max), a_max_(a_max) {
+    config_.validate_limits();
     // Keep the front-end allocator's kinematic limits in sync with the limits the
     // MINVO constraints are actually built against, otherwise the allocator sizes
     // the trajectory duration for one speed and the QP enforces another.
@@ -283,12 +343,12 @@ PlanningResult TrajectoryPlanner::plan_mission(
             total_control_points = 0;
             for (int pts : allocation_list) total_control_points += pts;
             std::tie(A_sfc, b_sfc) = build_overlap_constraints_fixed_wing(
-                corridors, allocation_list, total_control_points);
+                corridors, allocation_list, total_control_points, frame_origin);
         } else {
             // Use front_end compile_system_constraints to get raw A_sfc/b_sfc
             // then apply map boundary injection via build_overlap_constraints
             std::tie(A_sfc, b_sfc) = build_overlap_constraints(
-                corridors, allocation_pools, 0 /* computed internally */);
+                corridors, allocation_pools, 0 /* computed internally */, frame_origin);
             // Recompute total from pools
             total_control_points = 0;
             for (const auto& pool : allocation_pools) total_control_points += pool.pts;
@@ -763,7 +823,8 @@ PlanningResult TrajectoryPlanner::plan_mission(
 std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_constraints(
     const std::vector<sfc::SFCResult>& corridors,
     const std::vector<ConstraintPool>& pools,
-    int /* total_num_points */) const
+    int /* total_num_points */,
+    const Eigen::Vector3d& frame_origin) const
 {
     int num_dimensions = 3;
 
@@ -771,27 +832,7 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
     int total_pts = 0;
     for (const auto& pool : pools) total_pts += pool.pts;
 
-    // Map boundary hyperplanes: [+x, -x, +y, -y, +z, -z]
-    //
-    // The geofence must match the one A* searches in (front_end.cpp builds the A*
-    // bounds as +/- map_bounds/2 about the origin), and it must be expressed in NED,
-    // where z is NEGATIVE-up. The previous form (b = [X, 0, Y, 0, Z, 0]) encoded a
-    // positive-orthant box, which imposes x>=0, y>=0 and -- fatally -- z>=0, i.e. it
-    // required every control point to sit at or below ground level. That made the QP
-    // primal infeasible on every replan flown at a positive altitude.
-    double half_north = config_.map_bounds.x() / 2.0;
-    double half_east = config_.map_bounds.y() / 2.0;
-    double half_alt = config_.map_bounds.z() / 2.0;
-
-    Eigen::MatrixXd A_map(6, 3);
-    A_map << 1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-             0.0,  1.0,  0.0,
-             0.0, -1.0,  0.0,
-             0.0,  0.0,  1.0,
-             0.0,  0.0, -1.0;
-    Eigen::VectorXd b_map(6);
-    b_map << half_north, half_north, half_east, half_east, half_alt, half_alt;
+    const std::vector<BoundRow> limits = bound_rows(config_, frame_origin);
 
     std::vector<Eigen::MatrixXd> A_rows;
     std::vector<Eigen::VectorXd> b_rows;
@@ -807,32 +848,24 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
             b_parts.push_back(corridors[sfc_idx].b_vec);
         }
 
-        // Append map boundaries -- but only when they could actually bind.
-        //
-        // These 6 rows were previously stamped onto EVERY control point, doubling the
-        // inequality block. In practice a control point is already confined to its corridor,
-        // and corridors sit nowhere near the +/-50 m geofence, so the rows are inactive
-        // almost always. Redundant inactive constraints are not free: they enlarge the KKT
-        // system and add dual variables with nothing to pin them down, which is precisely the
-        // degeneracy that makes ADMM crawl toward its iteration limit. Include them only when
-        // a corner of some corridor in this pool actually approaches the boundary.
-        constexpr double kMapMargin = 5.0;   // metres of slack before we bother constraining
-        bool map_rows_can_bind = false;
-        for (int sfc_idx : pool.sfc_indices) {
-            const Eigen::Matrix<double, 3, 8> verts = corridors[sfc_idx].getAllVertices_3D();
-            for (int v = 0; v < 8; ++v) {
-                if (std::abs(verts(0, v)) > half_north - kMapMargin ||
-                    std::abs(verts(1, v)) > half_east  - kMapMargin ||
-                    std::abs(verts(2, v)) > half_alt   - kMapMargin) {
-                    map_rows_can_bind = true;
-                    break;
+        // Append the altitude / geofence planes that some corridor in this pool crosses.
+        std::vector<bool> is_map_row;   // per appended limit row, for the runway below
+        {
+            std::vector<const BoundRow*> active;
+            for (const auto& r : limits)
+                for (int sfc_idx : pool.sfc_indices)
+                    if (can_bind(r, corridors[sfc_idx])) { active.push_back(&r); break; }
+            if (!active.empty()) {
+                Eigen::MatrixXd A_lim(active.size(), 3);
+                Eigen::VectorXd b_lim(active.size());
+                for (std::size_t k = 0; k < active.size(); ++k) {
+                    A_lim.row(k) = active[k]->a;
+                    b_lim(k) = active[k]->b;
+                    is_map_row.push_back(active[k]->is_map);
                 }
+                A_parts.push_back(A_lim);
+                b_parts.push_back(b_lim);
             }
-            if (map_rows_can_bind) break;
-        }
-        if (map_rows_can_bind) {
-            A_parts.push_back(A_map);
-            b_parts.push_back(b_map);
         }
 
         // Combine into single A_pool/b_pool
@@ -859,13 +892,14 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
             }
 
             if (is_first || is_last) {
-                // The map hyperplanes were appended last, so they are exactly the final
-                // 6 rows of the pool. Relaxing them by index avoids having to pattern-match
-                // on the b-values (which is brittle whenever the geofence convention changes).
+                // The limit rows were appended last; relax the map_bounds ones among them (not
+                // the altitude limits). Count them rather than assuming a fixed number: with
+                // only some axes set, or rows left out as redundant, "the last 6 rows" would
+                // relax real corridor walls.
                 double runway_length = 30.0;
-                for (int k = static_cast<int>(b_pool.size()) - 6; k < static_cast<int>(b_pool.size()); ++k) {
-                    b_pool(k) += runway_length;
-                }
+                const int first = static_cast<int>(b_pool.size()) - static_cast<int>(is_map_row.size());
+                for (std::size_t k = 0; k < is_map_row.size(); ++k)
+                    if (is_map_row[k]) b_pool(first + static_cast<int>(k)) += runway_length;
             }
         }
 
@@ -920,26 +954,13 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
 std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_constraints_fixed_wing(
     const std::vector<sfc::SFCResult>& corridors,
     const std::vector<int>& num_pts_list,
-    int total_num_points) const
+    int total_num_points,
+    const Eigen::Vector3d& frame_origin) const
 {
     int num_dimensions = 3;
     int degree = config_.degree;
 
-    // NED-symmetric geofence, matching the A* bounds (see build_overlap_constraints).
-    double half_north = config_.map_bounds.x() / 2.0;
-    double half_east = config_.map_bounds.y() / 2.0;
-    double half_alt = config_.map_bounds.z() / 2.0;
-
-    // Map boundary hyperplanes
-    Eigen::MatrixXd A_map(6, 3);
-    A_map << 1.0,  0.0,  0.0,
-            -1.0,  0.0,  0.0,
-             0.0,  1.0,  0.0,
-             0.0, -1.0,  0.0,
-             0.0,  0.0,  1.0,
-             0.0,  0.0, -1.0;
-    Eigen::VectorXd b_map(6);
-    b_map << half_north, half_north, half_east, half_east, half_alt, half_alt;
+    const std::vector<BoundRow> limits = bound_rows(config_, frame_origin);
 
     std::vector<Eigen::MatrixXd> A_ineq_list;
     std::vector<Eigen::VectorXd> b_ineq_list;
@@ -947,26 +968,26 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> TrajectoryPlanner::build_overlap_con
 
     for (size_t i = 0; i < corridors.size(); ++i) {
         // Intersect SFC with map bounding box
-        int sfc_rows = static_cast<int>(corridors[i].A_mat.rows());
-        int total_ineq = sfc_rows + 6;
-
+        // This corridor's rows plus the altitude / geofence planes it crosses.
+        std::vector<const BoundRow*> active;
+        for (const auto& r : limits)
+            if (can_bind(r, corridors[i])) active.push_back(&r);
+        const int sfc_rows = static_cast<int>(corridors[i].A_mat.rows());
+        const int total_ineq = sfc_rows + static_cast<int>(active.size());
         Eigen::MatrixXd A_mat(total_ineq, 3);
-        A_mat.topRows(sfc_rows) = corridors[i].A_mat;
-        A_mat.bottomRows(6) = A_map;
-
         Eigen::VectorXd b_vec(total_ineq);
+        A_mat.topRows(sfc_rows) = corridors[i].A_mat;
         b_vec.head(sfc_rows) = corridors[i].b_vec;
-        b_vec.tail(6) = b_map;
+        for (std::size_t k = 0; k < active.size(); ++k) {
+            A_mat.row(sfc_rows + static_cast<int>(k)) = active[k]->a;
+            b_vec(sfc_rows + static_cast<int>(k)) = active[k]->b;
+        }
 
-        // Virtual runway logic for natural splines
-        if (config_.spline_type == "natural") {
-            if (i == 0 || i == corridors.size() - 1) {
-                // Map hyperplanes are the final 6 rows (appended after the SFC rows).
-                double runway_length = 30.0;
-                for (int k = total_ineq - 6; k < total_ineq; ++k) {
-                    b_vec(k) += runway_length;
-                }
-            }
+        // Natural splines: give the end corridors a runway past the map_bounds geofence.
+        if (config_.spline_type == "natural" && (i == 0 || i == corridors.size() - 1)) {
+            const double runway_length = 30.0;
+            for (std::size_t k = 0; k < active.size(); ++k)
+                if (active[k]->is_map) b_vec(sfc_rows + static_cast<int>(k)) += runway_length;
         }
 
         int num_pts_in_box = num_pts_list[i];

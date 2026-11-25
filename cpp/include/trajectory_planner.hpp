@@ -106,7 +106,8 @@ private:
     std::pair<Eigen::MatrixXd, Eigen::VectorXd> build_overlap_constraints(
         const std::vector<sfc::SFCResult>& corridors,
         const std::vector<ConstraintPool>& pools,
-        int total_num_points) const;
+        int total_num_points,
+        const Eigen::Vector3d& frame_origin) const;
 
     /**
      * Fixed-wing overlap constraint builder with map boundary injection.
@@ -115,7 +116,8 @@ private:
     std::pair<Eigen::MatrixXd, Eigen::VectorXd> build_overlap_constraints_fixed_wing(
         const std::vector<sfc::SFCResult>& corridors,
         const std::vector<int>& num_pts_list,
-        int total_num_points) const;
+        int total_num_points,
+        const Eigen::Vector3d& frame_origin) const;
 };
 
 } // namespace trajectory_planner
